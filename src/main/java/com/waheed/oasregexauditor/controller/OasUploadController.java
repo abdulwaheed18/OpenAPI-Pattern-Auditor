@@ -21,9 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Controller for handling file uploads and displaying validation results.
- */
 @Controller
 public class OasUploadController {
 
@@ -48,6 +45,12 @@ public class OasUploadController {
                                    @RequestParam(value = "qualityCheckPermissive", defaultValue = "false") boolean qualityCheckPermissive,
                                    @RequestParam(value = "qualityCheckAnchors", defaultValue = "false") boolean qualityCheckAnchors,
                                    @RequestParam(value = "qualityCheckRedos", defaultValue = "false") boolean qualityCheckRedos,
+                                   // NEW: API Design Best Practices
+                                   @RequestParam(value = "checkNaming", defaultValue = "false") boolean checkNaming,
+                                   @RequestParam(value = "checkOperationId", defaultValue = "false") boolean checkOperationId,
+                                   @RequestParam(value = "checkSummary", defaultValue = "false") boolean checkSummary,
+                                   @RequestParam(value = "checkSchemaDescription", defaultValue = "false") boolean checkSchemaDescription,
+                                   @RequestParam(value = "checkSchemaExample", defaultValue = "false") boolean checkSchemaExample,
                                    Model model) {
         if (file.isEmpty()) {
             model.addAttribute("message", "Error: Please select an OpenAPI file to upload.");
@@ -78,7 +81,8 @@ public class OasUploadController {
             List<ValidationResult> results = oasValidationService.validateOasRegex(
                     openAPI,
                     validateJava, validateJs, validateGoRe2j,
-                    qualityCheckPermissive, qualityCheckAnchors, qualityCheckRedos
+                    qualityCheckPermissive, qualityCheckAnchors, qualityCheckRedos,
+                    checkNaming, checkOperationId, checkSummary, checkSchemaDescription, checkSchemaExample
             );
 
             model.addAttribute("message", "Analysis complete for " + file.getOriginalFilename());

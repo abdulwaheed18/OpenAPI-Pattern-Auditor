@@ -4,6 +4,7 @@ import com.waheed.oasregexauditor.model.ValidationResult;
 import com.waheed.oasregexauditor.service.validators.PatternQualityValidator;
 import com.waheed.oasregexauditor.service.validators.RegexValidator;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
@@ -17,10 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-/**
- * Main service to orchestrate the validation of regex patterns within an OpenAPI specification.
- * It traverses the OpenAPI document model and uses specific validator components for each selected engine.
- */
 @Service
 public class OasValidationService {
 
@@ -35,39 +32,42 @@ public class OasValidationService {
         this.qualityValidator = qualityValidator;
     }
 
-    /**
-     * Validates all regex patterns found in an OpenAPI object against the selected engines and quality checks.
-     * This is the updated method signature that accepts the new boolean flags for quality checks.
-     */
     public List<ValidationResult> validateOasRegex(OpenAPI openAPI,
                                                    boolean validateJava, boolean validateJs, boolean validateGoRe2j,
-                                                   boolean qualityCheckPermissive, boolean qualityCheckAnchors, boolean qualityCheckRedos) {
+                                                   boolean qualityCheckPermissive, boolean qualityCheckAnchors, boolean qualityCheckRedos,
+                                                   boolean checkNaming, boolean checkOperationId, boolean checkSummary, boolean checkSchemaDescription, boolean checkSchemaExample) {
         List<ValidationResult> results = new ArrayList<>();
         List<RegexValidator> activeValidators = getActiveValidators(validateJava, validateJs, validateGoRe2j);
 
         // Consumer to process a found pattern
         Consumer<PatternLocation> patternProcessor = (loc) -> {
-            // 1. Perform engine-specific syntax validation
             if (!activeValidators.isEmpty()) {
                 for (RegexValidator validator : activeValidators) {
                     results.add(validator.validate(loc.path, loc.pattern));
                 }
             }
-            // 2. Perform quality and security checks based on the flags
-            results.addAll(qualityValidator.validate(loc.path, loc.pattern, qualityCheckPermissive, qualityCheckAnchors, qualityCheckRedos));
+            results.addAll(qualityValidator.validateRegex(loc.path, loc.pattern, qualityCheckPermissive, qualityCheckAnchors, qualityCheckRedos));
         };
 
         // Scan component schemas
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
             openAPI.getComponents().getSchemas().forEach((schemaName, schema) ->
-                    scanSchemaForPatterns(schema, "#/components/schemas/" + schemaName, patternProcessor)
+                    {
+                        String location = "#/components/schemas/" + schemaName;
+                        scanSchemaForPatterns(schema, location, patternProcessor);
+                        results.addAll(qualityValidator.validateSchema(location, schema, checkSchemaDescription, checkSchemaExample));
+                    }
             );
         }
 
         // Scan paths
         if (openAPI.getPaths() != null) {
             openAPI.getPaths().forEach((path, pathItem) ->
-                    scanPathItem(path, pathItem, patternProcessor)
+                    {
+                        String pathLocation = "#/paths/" + escapePath(path);
+                        results.addAll(qualityValidator.validatePath(pathLocation, path, checkNaming));
+                        scanPathItem(path, pathItem, patternProcessor, results, checkOperationId, checkSummary);
+                    }
             );
         }
 
@@ -84,7 +84,7 @@ public class OasValidationService {
         return active;
     }
 
-    private void scanPathItem(String path, PathItem pathItem, Consumer<PatternLocation> processor) {
+    private void scanPathItem(String path, PathItem pathItem, Consumer<PatternLocation> processor, List<ValidationResult> results, boolean checkOperationId, boolean checkSummary) {
         String pathPrefix = "#/paths/" + escapePath(path);
 
         if (pathItem.getParameters() != null) {
@@ -98,6 +98,9 @@ public class OasValidationService {
 
         pathItem.readOperationsMap().forEach((httpMethod, operation) -> {
             String opPrefix = pathPrefix + "/" + httpMethod.name().toLowerCase();
+            // NEW: Validate operation
+            results.addAll(qualityValidator.validateOperation(opPrefix, operation, checkOperationId, checkSummary));
+
             if (operation.getParameters() != null) {
                 for (int i = 0; i < operation.getParameters().size(); i++) {
                     Parameter param = operation.getParameters().get(i);
@@ -123,6 +126,8 @@ public class OasValidationService {
         });
     }
 
+    // Unchanged methods: scanSchemaForPatterns, scanComposition, escapePath, PatternLocation record
+    // ...
     /**
      * Recursively scans a Schema object, now with resilient parsing.
      */
