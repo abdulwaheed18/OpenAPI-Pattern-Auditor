@@ -32,33 +32,22 @@ public class OasUploadController {
     @Autowired
     private OasValidationService oasValidationService;
 
-    /**
-     * Displays the main file upload page.
-     *
-     * @param model The Spring UI model.
-     * @return The name of the Thymeleaf template for the upload page.
-     */
     @GetMapping("/")
     public String showUploadForm(Model model) {
         model.addAttribute("results", Collections.emptyList());
         return "upload";
     }
 
-    /**
-     * Handles the POST request for file upload and triggers the validation process.
-     *
-     * @param file The uploaded OpenAPI Specification file.
-     * @param validateJava Boolean flag to enable Java regex validation.
-     * @param validateJs Boolean flag to enable JavaScript regex validation.
-     * @param validateGoRe2j Boolean flag to enable Go (RE2J) regex validation.
-     * @param model The Spring UI model to pass results to the view.
-     * @return The name of the Thymeleaf template to display the results.
-     */
     @PostMapping("/upload")
     public String handleFileUpload(@RequestParam("oasFile") MultipartFile file,
+                                   // Engine Syntax Checks
                                    @RequestParam(value = "validateJava", defaultValue = "false") boolean validateJava,
                                    @RequestParam(value = "validateJs", defaultValue = "false") boolean validateJs,
                                    @RequestParam(value = "validateGoRe2j", defaultValue = "false") boolean validateGoRe2j,
+                                   // Quality & Security Checks
+                                   @RequestParam(value = "qualityCheckPermissive", defaultValue = "false") boolean qualityCheckPermissive,
+                                   @RequestParam(value = "qualityCheckAnchors", defaultValue = "false") boolean qualityCheckAnchors,
+                                   @RequestParam(value = "qualityCheckRedos", defaultValue = "false") boolean qualityCheckRedos,
                                    Model model) {
         if (file.isEmpty()) {
             model.addAttribute("message", "Error: Please select an OpenAPI file to upload.");
@@ -67,16 +56,13 @@ public class OasUploadController {
         }
 
         log.info("Received file: {}. Size: {} bytes.", file.getOriginalFilename(), file.getSize());
-        log.info("Validation engines selected - Java: {}, JavaScript: {}, Go (RE2J): {}", validateJava, validateJs, validateGoRe2j);
 
         try {
             String oasContent = new String(file.getBytes(), StandardCharsets.UTF_8);
 
-            // Set up parser options
             ParseOptions options = new ParseOptions();
-            options.setResolve(true); // Resolve external references like $ref
+            options.setResolve(true);
 
-            // Parse the OpenAPI content using swagger-parser
             SwaggerParseResult parseResult = new OpenAPIV3Parser().readContents(oasContent, null, options);
 
             OpenAPI openAPI = parseResult.getOpenAPI();
@@ -88,9 +74,12 @@ public class OasUploadController {
                 return "upload";
             }
 
-            // Perform validation
+            // Perform validation with all flags
             List<ValidationResult> results = oasValidationService.validateOasRegex(
-                    openAPI, validateJava, validateJs, validateGoRe2j);
+                    openAPI,
+                    validateJava, validateJs, validateGoRe2j,
+                    qualityCheckPermissive, qualityCheckAnchors, qualityCheckRedos
+            );
 
             model.addAttribute("message", "Analysis complete for " + file.getOriginalFilename());
             model.addAttribute("results", results);
@@ -106,8 +95,6 @@ public class OasUploadController {
             model.addAttribute("results", Collections.emptyList());
         }
 
-        // Return the same 'upload' template, which will be re-rendered with the results.
-        // If using AJAX, the client will intelligently replace sections of the DOM.
         return "upload";
     }
 }

@@ -36,30 +36,25 @@ public class OasValidationService {
     }
 
     /**
-     * Validates all regex patterns found in an OpenAPI object against the selected engines.
-     *
-     * @param openAPI The parsed OpenAPI object.
-     * @param validateJava True to validate against the Java regex engine.
-     * @param validateJs True to validate against the JavaScript regex engine.
-     * @param validateGoRe2j True to validate against the Go (RE2J) regex engine.
-     * @return A list of all validation results.
+     * Validates all regex patterns found in an OpenAPI object against the selected engines and quality checks.
+     * This is the updated method signature that accepts the new boolean flags for quality checks.
      */
-    public List<ValidationResult> validateOasRegex(OpenAPI openAPI, boolean validateJava, boolean validateJs, boolean validateGoRe2j) {
+    public List<ValidationResult> validateOasRegex(OpenAPI openAPI,
+                                                   boolean validateJava, boolean validateJs, boolean validateGoRe2j,
+                                                   boolean qualityCheckPermissive, boolean qualityCheckAnchors, boolean qualityCheckRedos) {
         List<ValidationResult> results = new ArrayList<>();
         List<RegexValidator> activeValidators = getActiveValidators(validateJava, validateJs, validateGoRe2j);
 
-        if (activeValidators.isEmpty()) {
-            log.warn("No validation engines selected. Skipping syntax validation.");
-        }
-
-        // Consumer to process a found pattern with all active validators and quality checks
+        // Consumer to process a found pattern
         Consumer<PatternLocation> patternProcessor = (loc) -> {
             // 1. Perform engine-specific syntax validation
-            for (RegexValidator validator : activeValidators) {
-                results.add(validator.validate(loc.path, loc.pattern));
+            if (!activeValidators.isEmpty()) {
+                for (RegexValidator validator : activeValidators) {
+                    results.add(validator.validate(loc.path, loc.pattern));
+                }
             }
-            // 2. Perform quality and security checks
-            results.addAll(qualityValidator.validate(loc.path, loc.pattern));
+            // 2. Perform quality and security checks based on the flags
+            results.addAll(qualityValidator.validate(loc.path, loc.pattern, qualityCheckPermissive, qualityCheckAnchors, qualityCheckRedos));
         };
 
         // Scan component schemas
@@ -69,7 +64,7 @@ public class OasValidationService {
             );
         }
 
-        // Scan paths for parameters, request bodies, and responses
+        // Scan paths
         if (openAPI.getPaths() != null) {
             openAPI.getPaths().forEach((path, pathItem) ->
                     scanPathItem(path, pathItem, patternProcessor)
@@ -79,9 +74,6 @@ public class OasValidationService {
         return results;
     }
 
-    /**
-     * Filters the available validators based on user selection.
-     */
     private List<RegexValidator> getActiveValidators(boolean java, boolean js, boolean go) {
         List<RegexValidator> active = new ArrayList<>();
         for (RegexValidator validator : validators) {
@@ -92,59 +84,38 @@ public class OasValidationService {
         return active;
     }
 
-    /**
-     * Scans a PathItem for regex patterns in its parameters and operations.
-     */
     private void scanPathItem(String path, PathItem pathItem, Consumer<PatternLocation> processor) {
         String pathPrefix = "#/paths/" + escapePath(path);
 
-        // Path-level parameters
         if (pathItem.getParameters() != null) {
             for (int i = 0; i < pathItem.getParameters().size(); i++) {
                 Parameter param = pathItem.getParameters().get(i);
                 if (param.getSchema() != null && param.getSchema().getPattern() != null) {
-                    processor.accept(new PatternLocation(
-                            pathPrefix + "/parameters/" + i + "/schema/pattern",
-                            param.getSchema().getPattern()
-                    ));
+                    processor.accept(new PatternLocation(pathPrefix + "/parameters/" + i, param.getSchema().getPattern()));
                 }
             }
         }
 
-        // Operation-level scanning (GET, POST, etc.)
         pathItem.readOperationsMap().forEach((httpMethod, operation) -> {
             String opPrefix = pathPrefix + "/" + httpMethod.name().toLowerCase();
-
-            // Operation parameters
             if (operation.getParameters() != null) {
                 for (int i = 0; i < operation.getParameters().size(); i++) {
                     Parameter param = operation.getParameters().get(i);
                     if (param.getSchema() != null && param.getSchema().getPattern() != null) {
-                        processor.accept(new PatternLocation(
-                                opPrefix + "/parameters/" + i + "/schema/pattern",
-                                param.getSchema().getPattern()
-                        ));
+                        processor.accept(new PatternLocation(opPrefix + "/parameters/" + i, param.getSchema().getPattern()));
                     }
                 }
             }
-
-            // Request Body
             if (operation.getRequestBody() != null && operation.getRequestBody().getContent() != null) {
                 operation.getRequestBody().getContent().forEach((mediaType, mediaTypeObject) -> {
-                    if (mediaTypeObject.getSchema() != null) {
-                        scanSchemaForPatterns(mediaTypeObject.getSchema(), opPrefix + "/requestBody/content/" + escapePath(mediaType) + "/schema", processor);
-                    }
+                    scanSchemaForPatterns(mediaTypeObject.getSchema(), opPrefix + "/requestBody/content/" + escapePath(mediaType) + "/schema", processor);
                 });
             }
-
-            // Responses
             if (operation.getResponses() != null) {
-                operation.getResponses().forEach((responseCode, apiResponse) -> {
-                    if (apiResponse.getContent() != null) {
-                        apiResponse.getContent().forEach((mediaType, mediaTypeObject) -> {
-                            if (mediaTypeObject.getSchema() != null) {
-                                scanSchemaForPatterns(mediaTypeObject.getSchema(), opPrefix + "/responses/" + responseCode + "/content/" + escapePath(mediaType) + "/schema", processor);
-                            }
+                operation.getResponses().forEach((code, response) -> {
+                    if (response.getContent() != null) {
+                        response.getContent().forEach((mediaType, mediaTypeObject) -> {
+                            scanSchemaForPatterns(mediaTypeObject.getSchema(), opPrefix + "/responses/" + code + "/content/" + escapePath(mediaType) + "/schema", processor);
                         });
                     }
                 });
@@ -153,62 +124,63 @@ public class OasValidationService {
     }
 
     /**
-     * Recursively scans a Schema object and its children for 'pattern' properties.
+     * Recursively scans a Schema object, now with resilient parsing.
      */
     private void scanSchemaForPatterns(Schema<?> schema, String currentLocation, Consumer<PatternLocation> processor) {
         if (schema == null) {
             return;
         }
 
-        // Check the pattern on the current schema
         if (schema.getPattern() != null) {
             processor.accept(new PatternLocation(currentLocation + "/pattern", schema.getPattern()));
         }
 
-        // Recursively scan properties
+        // Resiliently scan properties
         if (schema.getProperties() != null) {
-            schema.getProperties().forEach((propName, propSchema) ->
-                    scanSchemaForPatterns((Schema<?>) propSchema, currentLocation + "/properties/" + propName, processor)
-            );
+            schema.getProperties().forEach((propName, propValue) -> {
+                if (propValue instanceof Schema) {
+                    scanSchemaForPatterns((Schema<?>) propValue, currentLocation + "/properties/" + propName, processor);
+                } else {
+                    log.warn("Skipping non-schema object found at path: {}/properties/{}", currentLocation, propName);
+                }
+            });
         }
 
-        // Recursively scan array items
+        // Resiliently scan array items
         if (schema.getItems() != null) {
-            scanSchemaForPatterns(schema.getItems(), currentLocation + "/items", processor);
+            if (schema.getItems() instanceof Schema) {
+                scanSchemaForPatterns(schema.getItems(), currentLocation + "/items", processor);
+            } else {
+                log.warn("Skipping non-schema object found at path: {}/items", currentLocation);
+            }
         }
 
-        // Recursively scan composition keywords
         scanComposition(schema.getAllOf(), "allOf", currentLocation, processor);
         scanComposition(schema.getAnyOf(), "anyOf", currentLocation, processor);
         scanComposition(schema.getOneOf(), "oneOf", currentLocation, processor);
 
-        // Recursively scan additionalProperties if it's a schema
+        // Resiliently scan additionalProperties
         if (schema.getAdditionalProperties() instanceof Schema) {
             scanSchemaForPatterns((Schema<?>) schema.getAdditionalProperties(), currentLocation + "/additionalProperties", processor);
         }
     }
 
-    /**
-     * Helper to scan composition arrays (allOf, anyOf, oneOf).
-     */
     private void scanComposition(List<Schema> schemas, String keyword, String currentLocation, Consumer<PatternLocation> processor) {
         if (schemas != null) {
             for (int i = 0; i < schemas.size(); i++) {
-                scanSchemaForPatterns(schemas.get(i), currentLocation + "/" + keyword + "/" + i, processor);
+                Object item = schemas.get(i);
+                if (item instanceof Schema) {
+                    scanSchemaForPatterns((Schema<?>) item, currentLocation + "/" + keyword + "/" + i, processor);
+                } else {
+                    log.warn("Skipping non-schema object in composition list at path: {}/{}/{}", currentLocation, keyword, i);
+                }
             }
         }
     }
 
-    /**
-     * Escapes characters in a path segment for use in a JSON Pointer.
-     * ~ becomes ~0 and / becomes ~1.
-     */
     private String escapePath(String path) {
         return path.replace("~", "~0").replace("/", "~1");
     }
 
-    /**
-     * Helper record to hold a pattern and its location.
-     */
     private record PatternLocation(String path, String pattern) {}
 }

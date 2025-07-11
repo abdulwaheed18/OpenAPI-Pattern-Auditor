@@ -102,24 +102,45 @@
                     </div>
                 </div>
 
-                <!-- Engine Selection -->
-                <fieldset class="bg-gray-50/50 p-6 rounded-xl">
-                    <legend class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-cogs mr-2"></i>Select Validation Engines</legend>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label class="flex items-center space-x-3 p-4 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                            <input type="checkbox" name="validateJava" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                            <i class="fab fa-java text-2xl text-red-500"></i><span class="font-medium">Java</span>
-                        </label>
-                        <label class="flex items-center space-x-3 p-4 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                            <input type="checkbox" name="validateJs" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                            <i class="fab fa-js-square text-2xl text-yellow-500"></i><span class="font-medium">JavaScript</span>
-                        </label>
-                        <label class="flex items-center space-x-3 p-4 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                            <input type="checkbox" name="validateGoRe2j" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                            <i class="fab fa-google text-2xl text-blue-500"></i><span class="font-medium">Go (RE2J)</span>
-                        </label>
-                    </div>
-                </fieldset>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Engine Selection -->
+                    <fieldset class="bg-gray-50/50 p-6 rounded-xl">
+                        <legend class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-cogs mr-2"></i>Select Validation Engines</legend>
+                        <div class="space-y-3">
+                            <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
+                                <input type="checkbox" name="validateJava" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
+                                <i class="fab fa-java text-2xl text-red-500"></i><span class="font-medium">Java Syntax</span>
+                            </label>
+                            <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
+                                <input type="checkbox" name="validateJs" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
+                                <i class="fab fa-js-square text-2xl text-yellow-500"></i><span class="font-medium">JavaScript Syntax</span>
+                            </label>
+                            <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
+                                <input type="checkbox" name="validateGoRe2j" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
+                                <i class="fab fa-google text-2xl text-blue-500"></i><span class="font-medium">Go (RE2J) Syntax</span>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <!-- Quality Checks -->
+                    <fieldset class="bg-gray-50/50 p-6 rounded-xl">
+                        <legend class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-shield-alt mr-2"></i>Select Quality & Security Checks</legend>
+                        <div class="space-y-3">
+                            <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
+                                <input type="checkbox" name="qualityCheckPermissive" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
+                                <i class="fas fa-exclamation-triangle text-xl text-yellow-500"></i><span class="font-medium">Overly Permissive (e.g., .*)</span>
+                            </label>
+                            <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
+                                <input type="checkbox" name="qualityCheckAnchors" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
+                                <i class="fas fa-anchor text-xl text-blue-500"></i><span class="font-medium">Missing Start/End Anchors</span>
+                            </label>
+                            <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
+                                <input type="checkbox" name="qualityCheckRedos" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
+                                <i class="fas fa-bomb text-xl text-red-500"></i><span class="font-medium">Potential ReDoS Attack</span>
+                            </label>
+                        </div>
+                    </fieldset>
+                </div>
 
                 <!-- Submit Button -->
                 <div class="text-center pt-4">
@@ -146,6 +167,7 @@
 </div>
 
 <script>
+    // All JS from previous version remains the same
     document.addEventListener('DOMContentLoaded', () => {
         // --- File Drag and Drop ---
         const dropZone = document.getElementById('file-drop-zone');
@@ -253,15 +275,12 @@
         });
 
         // --- Table Controls (Sorting/Filtering) ---
-        // This function needs to be callable to re-attach listeners to new content
         function initializeTableControls() {
             const table = document.getElementById('resultsTable');
             if (!table) return;
 
-            // Filtering
             document.getElementById('filterInput')?.addEventListener('keyup', filterTable);
 
-            // Sorting
             table.querySelectorAll('thead th').forEach((header, index) => {
                 header.addEventListener('click', () => {
                     sortTable(index, header.dataset.sortDir);
@@ -274,7 +293,7 @@
             const table = document.getElementById('resultsTable');
             const rows = table.getElementsByTagName('tr');
 
-            for (let i = 1; i < rows.length; i++) { // Start from 1 to skip header
+            for (let i = 1; i < rows.length; i++) {
                 const cells = rows[i].getElementsByTagName('td');
                 let found = false;
                 for (let j = 0; j < cells.length; j++) {
@@ -294,7 +313,6 @@
             const headers = table.querySelectorAll('thead th');
             const newDir = currentDir === 'asc' ? 'desc' : 'asc';
 
-            // Reset sort indicators
             headers.forEach(h => h.removeAttribute('data-sort-dir'));
             headers[columnIndex].setAttribute('data-sort-dir', newDir);
 
@@ -308,7 +326,6 @@
             tbody.append(...rows);
         }
 
-        // Initial call for page load
         initializeTableControls();
     });
 </script>
