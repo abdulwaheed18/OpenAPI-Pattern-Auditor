@@ -14,65 +14,25 @@
             --background-start: #f0f2f5;
             --background-end: #e6e9ed;
         }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--background-start), var(--background-end));
-            color: #1a202c;
-        }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(15px);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%);
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .file-drop-zone {
-            border: 3px dashed #cbd5e1;
-            transition: all 0.3s ease;
-        }
-
-        .file-drop-zone.dragover {
-            border-color: var(--primary-start);
-            background-color: rgba(102, 126, 234, 0.05);
-            transform: scale(1.02);
-        }
-
-        .checkbox-custom:checked {
-            background-color: var(--primary-start);
-            border-color: var(--primary-start);
-        }
-        .checkbox-custom:checked::after {
-            content: '✓'; color: white; font-size: 14px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        }
-
-        .status-badge {
-            padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; text-transform: uppercase;
-        }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, var(--background-start), var(--background-end)); color: #1a202c; }
+        .glass-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(15px); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1); }
+        .btn-primary { background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%); transition: all 0.3s ease; }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3); }
+        .file-drop-zone { border: 3px dashed #cbd5e1; transition: all 0.3s ease; }
+        .file-drop-zone.dragover { border-color: var(--primary-start); background-color: rgba(102, 126, 234, 0.05); transform: scale(1.02); }
+        .checkbox-custom:checked { background-color: var(--primary-start); border-color: var(--primary-start); }
+        .checkbox-custom:checked::after { content: '✓'; color: white; font-size: 14px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
         .status-valid { background-color: #dcfce7; color: #166534; }
         .status-error { background-color: #fee2e2; color: #991b1b; }
         .status-warning { background-color: #fef3c7; color: #92400e; }
-
-        .table-container { max-height: 60vh; overflow-y: auto; }
-        .table-container thead th { position: sticky; top: 0; z-index: 10; background-color: #f8fafc; cursor: pointer;}
+        .table-container { max-height: 70vh; overflow-y: auto; }
+        .table-container thead th { position: sticky; top: 0; z-index: 10; background-color: #f8fafc; cursor: pointer; }
+        .table-container thead th .fa-sort { color: #9ca3af; }
+        .table-container thead th .fa-sort-up, .table-container thead th .fa-sort-down { color: var(--primary-start); }
         .table-container thead th:hover { background-color: #f1f5f9; }
-
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .loading-spinner { border: 3px solid #f3f3f3; border-top: 3px solid var(--primary-start); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
-
-        /* Scrollbar styling */
         .table-container::-webkit-scrollbar { width: 8px; }
         .table-container::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
         .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -81,23 +41,18 @@
 </head>
 <body class="flex flex-col min-h-screen">
 
-<!-- Header -->
 <div th:replace="~{fragments/header :: page-header}"></div>
 
-<!-- Main Content -->
 <main class="flex-grow">
     <div class="container mx-auto px-4 py-8 max-w-7xl">
-        <!-- Page Title -->
         <header class="text-center mb-10">
             <h1 class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600 mb-2">OpenAPI Pattern Auditor</h1>
             <p class="text-xl text-gray-600">Validate regex patterns against Java, JavaScript, and Go engines.</p>
         </header>
 
         <div class="space-y-8">
-            <!-- Upload Form -->
             <div class="glass-card p-8">
                 <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" class="space-y-6">
-                    <!-- File Input -->
                     <div id="file-drop-zone" class="file-drop-zone rounded-2xl p-8 text-center cursor-pointer">
                         <input type="file" id="oasFile" name="oasFile" accept=".json,.yaml,.yml" class="hidden">
                         <div id="file-display-area">
@@ -107,8 +62,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Engine Selection -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <fieldset class="bg-gray-50/50 p-6 rounded-xl">
                             <legend class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-cogs mr-2"></i>Select Validation Engines</legend>
                             <div class="space-y-3">
@@ -127,33 +81,30 @@
                             </div>
                         </fieldset>
 
-                        <!-- Quality Checks -->
                         <fieldset class="bg-gray-50/50 p-6 rounded-xl">
-                            <legend class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-shield-alt mr-2"></i>Select Quality & Security Checks</legend>
+                            <legend class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-shield-alt mr-2"></i>Quality & Security Checks</legend>
                             <div class="space-y-3">
                                 <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
                                     <input type="checkbox" name="qualityCheckPermissive" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fas fa-exclamation-triangle text-xl text-yellow-500"></i><span class="font-medium">Overly Permissive (e.g., .*)</span>
+                                    <i class="fas fa-exclamation-triangle text-xl text-yellow-500"></i><span class="font-medium">Overly Permissive</span>
                                 </label>
                                 <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
                                     <input type="checkbox" name="qualityCheckAnchors" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fas fa-anchor text-xl text-blue-500"></i><span class="font-medium">Missing Start/End Anchors</span>
+                                    <i class="fas fa-anchor text-xl text-blue-500"></i><span class="font-medium">Missing Anchors</span>
                                 </label>
                                 <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
                                     <input type="checkbox" name="qualityCheckRedos" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fas fa-bomb text-xl text-red-500"></i><span class="font-medium">Potential ReDoS Attack</span>
+                                    <i class="fas fa-bomb text-xl text-red-500"></i><span class="font-medium">Potential ReDoS</span>
                                 </label>
-
-
                             </div>
                         </fieldset>
 
-                        <fieldset class="bg-gray-50/50 p-6 rounded-xl">
-                            <legend class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-ruler-combined mr-2"></i>API Design & Best Practices</legend>
+                        <fieldset class="bg-gray-50/50 p-6 rounded-xl md:col-span-2 lg:col-span-1">
+                            <legend class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-ruler-combined mr-2"></i>API Best Practices</legend>
                             <div class="space-y-3">
                                 <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
                                     <input type="checkbox" name="checkNaming" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fas fa-font text-xl text-teal-500"></i><span class="font-medium">Path Naming Conventions</span>
+                                    <i class="fas fa-font text-xl text-teal-500"></i><span class="font-medium">Path Naming</span>
                                 </label>
                                 <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
                                     <input type="checkbox" name="checkOperationId" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
@@ -161,24 +112,15 @@
                                 </label>
                                 <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
                                     <input type="checkbox" name="checkSummary" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fas fa-align-left text-xl text-sky-500"></i><span class="font-medium">Missing Operation Summary</span>
-                                </label>
-                                <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                                    <input type="checkbox" name="checkSchemaDescription" value="true" class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fas fa-book-open text-xl text-indigo-500"></i><span class="font-medium">Missing Schema Descriptions</span>
-                                </label>
-                                <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                                    <input type="checkbox" name="checkSchemaExample" value="true" class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fas fa-vial text-xl text-purple-500"></i><span class="font-medium">Missing Schema Examples</span>
+                                    <i class="fas fa-align-left text-xl text-sky-500"></i><span class="font-medium">Missing Summary</span>
                                 </label>
                             </div>
                         </fieldset>
                     </div>
 
-                    <!-- Submit Button -->
                     <div class="text-center pt-4">
-                        <button type="submit" id="submit-button" class="btn-primary text-white font-semibold py-4 px-12 rounded-full text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span id="button-content">
+                        <button type="submit" id="submit-button" class="btn-primary text-white font-semibold py-4 px-12 rounded-full text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mx-auto">
+                            <span id="button-content" class="flex items-center">
                                 <i class="fas fa-search mr-2"></i>Analyze OpenAPI File
                             </span>
                         </button>
@@ -186,93 +128,85 @@
                 </form>
             </div>
 
-            <!-- Dynamic Results Section -->
             <div id="results-section" class="space-y-8">
-                <!-- This content will be replaced by the server response -->
                 <th:block th:replace="~{fragments/results :: results-content}"></th:block>
             </div>
         </div>
     </div>
 </main>
 
-<!-- Footer -->
 <div th:replace="~{fragments/footer :: page-footer}"></div>
 
 <script>
-    // All JS from previous version remains the same
     document.addEventListener('DOMContentLoaded', () => {
-        // --- File Drag and Drop ---
         const dropZone = document.getElementById('file-drop-zone');
         const fileInput = document.getElementById('oasFile');
         const fileDisplay = document.getElementById('file-display-area');
+        const uploadForm = document.getElementById('uploadForm');
+        const submitButton = document.getElementById('submit-button');
+        const buttonContent = document.getElementById('button-content');
+        const resultsSection = document.getElementById('results-section');
+        const originalFileDisplayText = fileDisplay.innerHTML;
 
         dropZone.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', () => handleFileSelect(fileInput.files));
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-        });
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => dropZone.addEventListener(eventName, preventDefaults, false));
+        ['dragenter', 'dragover'].forEach(eventName => dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false));
+        ['dragleave', 'drop'].forEach(eventName => dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false));
+        dropZone.addEventListener('drop', (e) => {
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelect(fileInput.files);
+        }, false);
 
         function preventDefaults(e) {
             e.preventDefault();
             e.stopPropagation();
         }
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            fileInput.files = e.dataTransfer.files;
-            handleFileSelect(fileInput.files);
-        }, false);
+        window.removeFile = function(event) {
+            event.stopPropagation();
+            fileInput.value = '';
+            fileDisplay.innerHTML = originalFileDisplayText;
+        }
 
         function handleFileSelect(files) {
             if (files.length > 0) {
                 const file = files[0];
                 fileDisplay.innerHTML = `
-                    <i class="fas fa-file-code text-5xl text-green-500 mb-3"></i>
-                    <p class="text-lg font-semibold text-gray-800">${file.name}</p>
-                    <p class="text-sm text-gray-500">${(file.size / 1024).toFixed(2)} KB</p>
+                    <div class="relative w-full p-4 border rounded-lg bg-white text-left">
+                        <div class="flex items-center space-x-4">
+                            <i class="fas fa-file-code text-4xl text-indigo-500"></i>
+                            <div class="overflow-hidden">
+                                <p class="font-semibold text-gray-800 truncate">${file.name}</p>
+                                <p class="text-sm text-gray-500">${(file.size / 1024).toFixed(2)} KB</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="removeFile(event)" class="absolute top-2 right-2 text-gray-400 hover:text-red-600 transition-colors">
+                            <i class="fas fa-times-circle text-xl"></i>
+                        </button>
+                    </div>
                 `;
+            } else {
+                 fileDisplay.innerHTML = originalFileDisplayText;
             }
         }
 
-        // --- AJAX Form Submission ---
-        const uploadForm = document.getElementById('uploadForm');
-        const submitButton = document.getElementById('submit-button');
-        const buttonContent = document.getElementById('button-content');
-        const resultsSection = document.getElementById('results-section');
-
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             if (fileInput.files.length === 0) {
-                alert('Please select a file first.');
+                alert('Please select an OpenAPI file first.');
                 return;
             }
 
-            // --- UI Loading State ---
             submitButton.disabled = true;
-            buttonContent.innerHTML = `<div class="loading-spinner mx-auto"></div><span class="ml-2">Analyzing...</span>`;
+            buttonContent.innerHTML = `<div class="loading-spinner"></div><span class="ml-3">Analyzing...</span>`;
             resultsSection.style.opacity = '0.5';
             resultsSection.style.transition = 'opacity 0.3s';
 
             const formData = new FormData(uploadForm);
-
             try {
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Server responded with status: ${response.status}`);
-                }
+                const response = await fetch('/upload', { method: 'POST', body: formData });
+                if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
 
                 const html = await response.text();
                 const parser = new DOMParser();
@@ -281,14 +215,11 @@
 
                 if (newResults) {
                     resultsSection.innerHTML = newResults.innerHTML;
-                    // Re-initialize event listeners for the new content
                     initializeTableControls();
-                    // Smooth scroll to results
                     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } else {
-                     throw new Error('Could not find results section in server response.');
+                    throw new Error('Could not find results section in server response.');
                 }
-
             } catch (error) {
                 console.error('Form submission error:', error);
                 resultsSection.innerHTML = `
@@ -296,62 +227,89 @@
                         <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
                         <h3 class="text-2xl font-bold">Request Failed</h3>
                         <p>Could not connect to the server or an error occurred.</p>
-                        <p class="text-sm mt-2">${error.message}</p>
+                        <p class="text-sm mt-2 font-mono">${error.message}</p>
                     </div>`;
             } finally {
-                // --- Reset UI ---
                 submitButton.disabled = false;
                 buttonContent.innerHTML = `<i class="fas fa-search mr-2"></i>Analyze OpenAPI File`;
                 resultsSection.style.opacity = '1';
             }
         });
 
-        // --- Table Controls (Sorting/Filtering) ---
+        // Delegated event listener for collapsible details
+        resultsSection.addEventListener('click', function(event) {
+            const button = event.target.closest('.toggle-details-btn');
+            if (button) {
+                const detailsId = button.getAttribute('data-details-id');
+                toggleDetails(detailsId);
+            }
+        });
+
+        function toggleDetails(elementId) {
+            const element = document.getElementById(elementId);
+            const button = document.querySelector(`[data-details-id="${elementId}"]`);
+            if (element && button) {
+                const icon = button.querySelector('i');
+                if (element.classList.contains('hidden')) {
+                    element.classList.remove('hidden');
+                    button.innerHTML = '<i class="fas fa-chevron-up mr-1"></i>Hide Suggestion';
+                } else {
+                    element.classList.add('hidden');
+                    button.innerHTML = '<i class="fas fa-chevron-down mr-1"></i>Show Suggestion';
+                }
+            }
+        }
+
+
         function initializeTableControls() {
-            const table = document.getElementById('resultsTable');
-            if (!table) return;
+            const filterInput = document.getElementById('filterInput');
+            filterInput?.addEventListener('keyup', filterTable);
 
-            document.getElementById('filterInput')?.addEventListener('keyup', filterTable);
-
-            table.querySelectorAll('thead th').forEach((header, index) => {
-                header.addEventListener('click', () => {
-                    sortTable(index, header.dataset.sortDir);
-                });
+            document.querySelectorAll('#resultsTable thead th').forEach((header, index) => {
+                if (header.dataset.sortable) {
+                    header.addEventListener('click', () => {
+                        sortTable(index);
+                    });
+                }
             });
         }
 
         function filterTable() {
             const filter = document.getElementById('filterInput').value.toUpperCase();
-            const table = document.getElementById('resultsTable');
-            const rows = table.getElementsByTagName('tr');
-
-            for (let i = 1; i < rows.length; i++) {
-                const cells = rows[i].getElementsByTagName('td');
+            const rows = document.querySelectorAll('#resultsTable tbody tr');
+            rows.forEach(row => {
+                const cells = row.getElementsByTagName('td');
                 let found = false;
-                for (let j = 0; j < cells.length; j++) {
-                    if (cells[j].textContent.toUpperCase().indexOf(filter) > -1) {
+                for (let cell of cells) {
+                    if (cell.textContent.toUpperCase().indexOf(filter) > -1) {
                         found = true;
                         break;
                     }
                 }
-                rows[i].style.display = found ? '' : 'none';
-            }
+                row.style.display = found ? '' : 'none';
+            });
         }
 
-        function sortTable(columnIndex, currentDir) {
+        function sortTable(columnIndex) {
             const table = document.getElementById('resultsTable');
             const tbody = table.tBodies[0];
             const rows = Array.from(tbody.rows);
-            const headers = table.querySelectorAll('thead th');
+            const header = table.querySelectorAll('thead th')[columnIndex];
+            const currentDir = header.dataset.sortDir || 'asc';
             const newDir = currentDir === 'asc' ? 'desc' : 'asc';
 
-            headers.forEach(h => h.removeAttribute('data-sort-dir'));
-            headers[columnIndex].setAttribute('data-sort-dir', newDir);
+            table.querySelectorAll('thead th').forEach(h => {
+                h.removeAttribute('data-sort-dir');
+                h.querySelector('.fa-sort')?.classList.remove('fa-sort-up', 'fa-sort-down');
+            });
+
+            header.setAttribute('data-sort-dir', newDir);
+            header.querySelector('.fa-sort')?.classList.add(newDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
 
             rows.sort((a, b) => {
                 const cellA = a.cells[columnIndex].innerText.trim();
                 const cellB = b.cells[columnIndex].innerText.trim();
-                const compare = cellA.localeCompare(cellB, undefined, {numeric: true});
+                const compare = cellA.localeCompare(cellB, undefined, {numeric: true, sensitivity: 'base'});
                 return newDir === 'asc' ? compare : -compare;
             });
 

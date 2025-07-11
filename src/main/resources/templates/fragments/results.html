@@ -2,50 +2,27 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- This fragment contains the dynamically updated results section -->
 <div id="results-section" th:fragment="results-content" class="space-y-8">
 
-    <!-- Status Message -->
     <div th:if="${message}" id="message-container" class="glass-card p-6">
         <div th:if="${message.toLowerCase().contains('error')}" class="flex items-center text-red-800">
             <i class="fas fa-times-circle text-2xl mr-4"></i>
-            <div>
-                <h3 class="font-bold">Error</h3>
-                <p th:text="${message}"></p>
-            </div>
+            <div><h3 class="font-bold">Error</h3><p th:text="${message}"></p></div>
         </div>
         <div th:unless="${message.toLowerCase().contains('error')}" class="flex items-center text-green-800">
             <i class="fas fa-check-circle text-2xl mr-4"></i>
-            <div>
-                <h3 class="font-bold">Success</h3>
-                <p th:text="${message}"></p>
-            </div>
+            <div><h3 class="font-bold">Success</h3><p th:text="${message}"></p></div>
         </div>
     </div>
 
-    <!-- Results exist -->
     <div th:if="${not #lists.isEmpty(results)}" class="space-y-8">
-        <!-- Statistics Summary -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div class="glass-card p-6 text-center">
-                <div class="text-4xl font-bold text-blue-600" th:text="${#lists.size(results)}">0</div>
-                <div class="text-sm text-gray-600 mt-1">Total Checks</div>
-            </div>
-            <div class="glass-card p-6 text-center">
-                <div class="text-4xl font-bold text-green-600" th:text="${results.?[isValid].size()}">0</div>
-                <div class="text-sm text-gray-600 mt-1">Valid Patterns</div>
-            </div>
-            <div class="glass-card p-6 text-center">
-                <div class="text-4xl font-bold text-red-600" th:text="${results.?[issueType == 'ERROR'].size()}">0</div>
-                <div class="text-sm text-gray-600 mt-1">Errors</div>
-            </div>
-            <div class="glass-card p-6 text-center">
-                <div class="text-4xl font-bold text-yellow-600" th:text="${results.?[issueType == 'WARNING'].size()}">0</div>
-                <div class="text-sm text-gray-600 mt-1">Warnings</div>
-            </div>
+            <div class="glass-card p-6 text-center"><div class="text-4xl font-bold text-blue-600" th:text="${#lists.size(results)}">0</div><div class="text-sm text-gray-600 mt-1">Total Issues</div></div>
+            <div class="glass-card p-6 text-center"><div class="text-4xl font-bold text-green-600" th:text="${results.?[isValid].size()}">0</div><div class="text-sm text-gray-600 mt-1">Valid Checks</div></div>
+            <div class="glass-card p-6 text-center"><div class="text-4xl font-bold text-red-600" th:text="${results.?[issueType == 'ERROR'].size()}">0</div><div class="text-sm text-gray-600 mt-1">Errors</div></div>
+            <div class="glass-card p-6 text-center"><div class="text-4xl font-bold text-yellow-600" th:text="${results.?[issueType == 'WARNING'].size()}">0</div><div class="text-sm text-gray-600 mt-1">Warnings</div></div>
         </div>
 
-        <!-- Results Table Card -->
         <div class="glass-card p-8">
             <div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
                 <h2 class="text-3xl font-bold text-gray-800">Validation Results</h2>
@@ -54,46 +31,68 @@
                 </div>
             </div>
 
-            <div class="table-container rounded-lg border">
+            <div class="hidden md:block table-container rounded-lg border">
                 <table id="resultsTable" class="w-full text-sm text-left text-gray-700">
                     <thead class="text-xs text-gray-500 uppercase bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-3" data-sort-dir="asc">Location <i class="fas fa-sort ml-1"></i></th>
-                        <th scope="col" class="px-6 py-3" data-sort-dir="asc">Pattern <i class="fas fa-sort ml-1"></i></th>
-                        <th scope="col" class="px-6 py-3" data-sort-dir="asc">Engine <i class="fas fa-sort ml-1"></i></th>
-                        <th scope="col" class="px-6 py-3" data-sort-dir="asc">Status <i class="fas fa-sort ml-1"></i></th>
-                        <th scope="col" class="px-6 py-3">Details</th>
+                        <th scope="col" class="px-6 py-3 w-1/4" data-sortable="true">Location <i class="fas fa-sort ml-1"></i></th>
+                        <th scope="col" class="px-6 py-3 w-1/6" data-sortable="true">Pattern <i class="fas fa-sort ml-1"></i></th>
+                        <th scope="col" class="px-6 py-3" data-sortable="true">Engine <i class="fas fa-sort ml-1"></i></th>
+                        <th scope="col" class="px-6 py-3" data-sortable="true">Status <i class="fas fa-sort ml-1"></i></th>
+                        <th scope="col" class="px-6 py-3 w-1/3">Details</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="result : ${results}" class="bg-white border-b hover:bg-gray-50">
+                    <tr th:each="result, iter : ${results}" class="bg-white border-b hover:bg-gray-50">
                         <td class="px-6 py-4 font-mono text-xs" th:text="${result.location}"></td>
                         <td class="px-6 py-4 font-mono text-xs bg-gray-50" th:text="${result.regexPattern}"></td>
+                        <td class="px-6 py-4" th:text="${result.engine}"></td>
                         <td class="px-6 py-4">
-                            <span th:text="${result.engine}"></span>
-                        </td>
-                        <td class="px-6 py-4">
-                                <span th:class="${result.issueType == 'ERROR' ? 'status-badge status-error' : (result.issueType == 'WARNING' ? 'status-badge status-warning' : 'status-badge status-valid')}"
-                                      th:text="${result.issueType}"></span>
+                            <span th:class="${result.issueType == 'ERROR' ? 'status-badge status-error' : (result.issueType == 'WARNING' ? 'status-badge status-warning' : 'status-badge status-valid')}" th:text="${result.issueType}"></span>
                         </td>
                         <td class="px-6 py-4">
                             <p class="font-semibold" th:text="${result.message}"></p>
-                            <p th:if="${result.suggestion}" class="text-xs text-gray-500 italic mt-1" th:text="${result.suggestion}"></p>
+                            <button th:if="${result.suggestion}"
+                                    class="toggle-details-btn text-indigo-600 hover:underline text-xs mt-1 flex items-center"
+                                    th:data-details-id="'details-desktop-' + ${iter.index}">
+                                <i class="fas fa-chevron-down mr-1"></i>Show Suggestion
+                            </button>
+                            <p th:if="${result.suggestion}" th:id="'details-desktop-' + ${iter.index}" class="hidden text-xs text-gray-500 italic mt-1" th:text="${result.suggestion}"></p>
                         </td>
                     </tr>
                     </tbody>
                 </table>
             </div>
+
+            <div class="block md:hidden space-y-4">
+                <div th:each="result, iter : ${results}" class="bg-white p-4 rounded-lg shadow border">
+                    <div class="flex justify-between items-start mb-2">
+                        <span th:class="${result.issueType == 'ERROR' ? 'status-badge status-error' : (result.issueType == 'WARNING' ? 'status-badge status-warning' : 'status-badge status-valid')}" th:text="${result.issueType}"></span>
+                        <span class="text-sm font-semibold text-gray-600" th:text="${result.engine}"></span>
+                    </div>
+                    <div class="mb-3">
+                        <p class="font-mono text-xs text-gray-600 break-words" th:text="${result.location}"></p>
+                        <p class="font-mono text-sm bg-gray-100 p-2 rounded mt-1 break-all" th:text="${result.regexPattern}"></p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-sm" th:text="${result.message}"></p>
+                        <button th:if="${result.suggestion}"
+                                class="toggle-details-btn text-indigo-600 hover:underline text-xs mt-1 flex items-center"
+                                th:data-details-id="'details-mobile-' + ${iter.index}">
+                            <i class="fas fa-chevron-down mr-1"></i>Show Suggestion
+                        </button>
+                        <p th:if="${result.suggestion}" th:id="'details-mobile-' + ${iter.index}" class="hidden text-xs text-gray-500 italic mt-1" th:text="${result.suggestion}"></p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Empty State (No regex patterns found in a valid file) -->
     <div th:if="${#lists.isEmpty(results) and message != null and not message.toLowerCase().contains('error')}" class="glass-card p-12 text-center">
         <i class="fas fa-search text-6xl text-gray-300 mb-4"></i>
-        <h3 class="text-2xl font-semibold text-gray-600 mb-2">No Regex Patterns Found</h3>
-        <p class="text-gray-500">The OpenAPI file was processed successfully, but no regex patterns were detected.</p>
+        <h3 class="text-2xl font-semibold text-gray-600 mb-2">No Issues Found</h3>
+        <p class="text-gray-500">The OpenAPI file was processed successfully. All checks passed or no regex patterns were found.</p>
     </div>
-
 </div>
 
 </body>
