@@ -24,7 +24,7 @@
                 <ul class="space-y-2 text-sm">
                     <li><a th:href="@{/}" class="hover:text-white transition-colors">Home</a></li>
                     <li><a th:href="@{/about}" class="hover:text-white transition-colors">About the Author</a></li>
-                    <li><a href="#" class="hover:text-white transition-colors">Documentation</a></li>
+                    <li><a th:href="${appConfig.blog}" target="_blank" class="hover:text-white transition-colors">Blog</a></li>
                 </ul>
             </div>
 
@@ -32,16 +32,16 @@
             <div>
                 <h3 class="text-lg font-semibold text-white mb-4">Connect</h3>
                 <div class="flex justify-center md:justify-start space-x-4">
-                    <a href="https://github.com/your-repo" target="_blank" class="text-2xl hover:text-indigo-400 transition-colors"><i class="fab fa-github"></i></a>
-                    <a href="https://linkedin.com/in/your-profile" target="_blank" class="text-2xl hover:text-indigo-400 transition-colors"><i class="fab fa-linkedin"></i></a>
-                    <a href="https://twitter.com/your-handle" target="_blank" class="text-2xl hover:text-indigo-400 transition-colors"><i class="fab fa-twitter"></i></a>
+                    <a th:href="${appConfig.github}" target="_blank" class="text-2xl hover:text-indigo-400 transition-colors"><i class="fab fa-github"></i></a>
+                    <a th:href="${appConfig.linkedin}" target="_blank" class="text-2xl hover:text-indigo-400 transition-colors"><i class="fab fa-linkedin"></i></a>
+                    <a th:href="'mailto:' + ${appConfig.email}" class="text-2xl hover:text-indigo-400 transition-colors"><i class="fas fa-envelope"></i></a>
                 </div>
             </div>
         </div>
 
         <!-- Copyright -->
         <div class="border-t border-gray-700 mt-8 pt-6 text-center text-sm text-gray-500">
-            <p>&copy; 2025 Your Name. All Rights Reserved.</p>
+            <p>&copy; 2025 <span th:text="${appConfig.name}">Your Name</span>. All Rights Reserved.</p>
         </div>
     </div>
 </footer>

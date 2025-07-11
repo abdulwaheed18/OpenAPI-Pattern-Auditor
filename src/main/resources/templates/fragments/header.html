@@ -20,7 +20,7 @@
             <nav class="hidden md:flex items-center space-x-6">
                 <a th:href="@{/}" class="text-gray-600 hover:text-indigo-600 transition-colors">Home</a>
                 <a th:href="@{/about}" class="text-gray-600 hover:text-indigo-600 transition-colors">About</a>
-                <a href="https://github.com/your-repo/openapi-pattern-auditor" target="_blank" class="text-gray-600 hover:text-indigo-600 transition-colors">
+                <a th:href="${appConfig.githubRepo}" target="_blank" class="text-gray-600 hover:text-indigo-600 transition-colors">
                     <i class="fab fa-github mr-1"></i> GitHub
                 </a>
             </nav>
