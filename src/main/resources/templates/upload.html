@@ -8,10 +8,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- This now uses the centralized global styles -->
     <style th:replace="~{fragments/global-styles :: global-styles}"></style>
 </head>
 <body class="flex flex-col min-h-screen">
 
+<!-- The header fragment is now dark-mode aware -->
 <div th:replace="~{fragments/header :: page-header}"></div>
 
 <main class="flex-grow">
@@ -69,6 +71,7 @@
             </div>
 
             <div id="results-section" class="space-y-8">
+                <!-- This is initially empty and populated via AJAX -->
                 <th:block th:replace="~{fragments/results :: results-content}"></th:block>
             </div>
         </div>
@@ -77,6 +80,7 @@
 
 <div th:replace="~{fragments/footer :: page-footer}"></div>
 
+<!-- This now uses the centralized global scripts -->
 <script th:replace="~{fragments/global-scripts :: global-scripts}"></script>
 <script>
     // Page-specific script for upload form logic
@@ -143,12 +147,11 @@
             try {
                 const response = await fetch('/upload', { method: 'POST', body: formData });
                 const html = await response.text();
-                const newResults = new DOMParser().parseFromString(html, 'text/html').getElementById('results-section');
-                if (newResults) {
-                    resultsSection.innerHTML = newResults.innerHTML;
-                    initializeTableControls();
-                    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else { throw new Error('Could not find results section in server response.'); }
+                // The response is now just the results fragment, so we can inject it directly
+                resultsSection.innerHTML = html;
+                // Re-initialize controls for the new content
+                initializeTableControls();
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } catch (error) {
                 console.error('Form submission error:', error);
                 resultsSection.innerHTML = `<div class="glass-card p-8 text-center text-red-600 dark:text-red-400"><i class="fas fa-exclamation-triangle text-4xl mb-4"></i><h3 class="text-2xl font-bold">Request Failed</h3><p class="dark:text-gray-300">An error occurred during analysis.</p><p class="text-sm mt-2 font-mono">${error.message}</p></div>`;

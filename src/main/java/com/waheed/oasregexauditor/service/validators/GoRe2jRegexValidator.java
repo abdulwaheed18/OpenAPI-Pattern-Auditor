@@ -4,9 +4,6 @@ import com.google.re2j.PatternSyntaxException;
 import com.waheed.oasregexauditor.model.ValidationResult;
 import org.springframework.stereotype.Component;
 
-/**
- * Validator for Google's RE2J regex engine, which is compatible with Go's RE2 engine.
- */
 @Component
 public class GoRe2jRegexValidator implements RegexValidator {
 
@@ -19,8 +16,16 @@ public class GoRe2jRegexValidator implements RegexValidator {
             return ValidationResult.success(location, regex, ENGINE_NAME);
         } catch (PatternSyntaxException e) {
             String errorMessage = String.format("Invalid Go (RE2J) syntax or unsupported feature: %s", e.getMessage());
-            String suggestion = "RE2 is designed for efficiency and does not support all PCRE features like lookarounds or backreferences. Simplify the pattern or consult RE2 syntax documentation.";
-            return ValidationResult.error(location, regex, ENGINE_NAME, errorMessage, suggestion);
+            String suggestion = "RE2 is designed for efficiency and does not support all PCRE features like lookarounds or backreferences.";
+
+            // RE2J's exceptions are less detailed, so suggestions are limited.
+            // We can still try to fix the most obvious error.
+            String suggestedRegex = null;
+            if (e.getMessage().contains("missing closing ]")) {
+                suggestedRegex = regex + "]";
+            }
+
+            return ValidationResult.error(location, regex, ENGINE_NAME, errorMessage, suggestion, suggestedRegex);
         }
     }
 

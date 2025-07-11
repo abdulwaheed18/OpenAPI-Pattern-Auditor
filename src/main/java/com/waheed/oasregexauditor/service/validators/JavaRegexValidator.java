@@ -6,9 +6,6 @@ import org.springframework.stereotype.Component;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-/**
- * Validator for Java's built-in regex engine (java.util.regex).
- */
 @Component
 public class JavaRegexValidator implements RegexValidator {
 
@@ -20,11 +17,25 @@ public class JavaRegexValidator implements RegexValidator {
             Pattern.compile(regex);
             return ValidationResult.success(location, regex, ENGINE_NAME);
         } catch (PatternSyntaxException e) {
-            // Provide a more helpful message by pinpointing the error
             String errorMessage = String.format("Invalid Java regex syntax: %s near index %d", e.getDescription(), e.getIndex());
             String suggestion = String.format("Review the pattern syntax around: '%s'. Check Java's regex documentation for supported features.", e.getPattern());
-            return ValidationResult.error(location, regex, ENGINE_NAME, errorMessage, suggestion);
+
+            // Generate a suggested fix for common, simple errors
+            String suggestedRegex = generateSuggestedFix(regex, e);
+
+            return ValidationResult.error(location, regex, ENGINE_NAME, errorMessage, suggestion, suggestedRegex);
         }
+    }
+
+    private String generateSuggestedFix(String regex, PatternSyntaxException e) {
+        if (e.getDescription().startsWith("Unclosed character class")) {
+            return regex + "]";
+        }
+        if (e.getDescription().startsWith("Unclosed group")) {
+            return regex + ")";
+        }
+        // Can add more simple fixes here for other common errors
+        return null;
     }
 
     @Override
