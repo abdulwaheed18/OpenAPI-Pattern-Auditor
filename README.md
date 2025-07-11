@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/badge/Version-1.4.1-blue.svg)](https://github.com/your-username/graphix-studio) [![Built with: HTML, JS, TailwindCSS](https://img.shields.io/badge/Built%20with-HTML%2C%20JS%2C%20TailwindCSS-brightgreen.svg)](#technology-stack)
 
 Audits regex patterns in OpenAPI Specification files to ensure cross-engine compatibility and identify quality issues.
-![Graphix Studio Screenshot](https://placehold.co/800x450/DBEAFE/3B82F6?text=OpenAPI+Pattern+Auditor)
+![img.png](Main Screen.png)
 ## Key Features
 
 * **Multi-Engine Validation**: Checks regex pattern syntax against multiple popular engines:
