@@ -1,4 +1,3 @@
-// src/main/java/com/waheed/oasregexauditor/service/OasValidationService.java
 package com.waheed.oasregexauditor.service;
 
 import com.waheed.oasregexauditor.model.ValidationResult;
@@ -30,8 +29,8 @@ public class OasValidationService {
 
         // 1. Scan Schemas for 'pattern' properties
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
-            // Using explicit for-each loop for clarity and to avoid lambda type inference issues
-            for (Map.Entry<String, Schema> schemaEntry : openAPI.getComponents().getSchemas().entrySet()) {
+            Map<String, Schema> schemas = openAPI.getComponents().getSchemas();
+            for (Map.Entry<String, Schema> schemaEntry : schemas.entrySet()) {
                 String schemaName = schemaEntry.getKey();
                 Schema schema = schemaEntry.getValue();
                 scanSchemaForPatterns(schema, "#/components/schemas/" + schemaName, results, validateJava, validateJs, validateGoRe2j);
@@ -40,8 +39,8 @@ public class OasValidationService {
 
         // 2. Scan Path Parameters and Operations for 'pattern' properties
         if (openAPI.getPaths() != null) {
-            // Using explicit for-each loop for clarity and to avoid lambda type inference issues
-            for (Map.Entry<String, PathItem> pathEntry : openAPI.getPaths().entrySet()) {
+            Map<String, PathItem> paths = openAPI.getPaths();
+            for (Map.Entry<String, PathItem> pathEntry : paths.entrySet()) {
                 String path = pathEntry.getKey();
                 PathItem pathItem = pathEntry.getValue();
 
@@ -69,7 +68,7 @@ public class OasValidationService {
                     }
                     // Check request body schemas for patterns
                     if (operation.getRequestBody() != null && operation.getRequestBody().getContent() != null) {
-                        operation.getRequestBody().getContent().forEach((String mediaType, io.swagger.v3.oas.models.media.MediaType mediaTypeObject) -> {
+                        operation.getRequestBody().getContent().forEach((mediaType, mediaTypeObject) -> {
                             if (mediaTypeObject.getSchema() != null) {
                                 scanSchemaForPatterns(mediaTypeObject.getSchema(), "#/paths/" + path + "/" + httpMethod.name().toLowerCase() + "/requestBody/content/" + mediaType + "/schema", results, validateJava, validateJs, validateGoRe2j);
                             }
@@ -77,9 +76,9 @@ public class OasValidationService {
                     }
                     // Check response body schemas for patterns
                     if (operation.getResponses() != null) {
-                        operation.getResponses().forEach((String responseCode, io.swagger.v3.oas.models.responses.ApiResponse apiResponse) -> {
+                        operation.getResponses().forEach((responseCode, apiResponse) -> {
                             if (apiResponse.getContent() != null) {
-                                apiResponse.getContent().forEach((String mediaType, io.swagger.v3.oas.models.media.MediaType mediaTypeObject) -> {
+                                apiResponse.getContent().forEach((mediaType, mediaTypeObject) -> {
                                     if (mediaTypeObject.getSchema() != null) {
                                         scanSchemaForPatterns(mediaTypeObject.getSchema(), "#/paths/" + path + "/" + httpMethod.name().toLowerCase() + "/responses/" + responseCode + "/content/" + mediaType + "/schema", results, validateJava, validateJs, validateGoRe2j);
                                     }
@@ -109,11 +108,17 @@ public class OasValidationService {
 
         // Check properties within the schema
         if (schema.getProperties() != null) {
-            // Using explicit for-each loop for clarity and to avoid lambda type inference issues
-            for (Map.Entry<String, Schema> propEntry : schema.getProperties().entrySet()) {
-                String propName = propEntry.getKey();
-                Schema propSchema = propEntry.getValue();
-                scanSchemaForPatterns(propSchema, currentLocation + "/properties/" + propName, results, validateJava, validateJs, validateGoRe2j);
+            Map<String, Schema> properties = schema.getProperties();
+            // Handle potential raw map by explicit casting
+            for (Map.Entry<String, ?> entry : properties.entrySet()) {
+                String propName = entry.getKey();
+                Object propValue = entry.getValue();
+
+                // Safe cast to Schema
+                if (propValue instanceof Schema) {
+                    Schema propSchema = (Schema) propValue;
+                    scanSchemaForPatterns(propSchema, currentLocation + "/properties/" + propName, results, validateJava, validateJs, validateGoRe2j);
+                }
             }
         }
 
@@ -125,18 +130,36 @@ public class OasValidationService {
         // Check 'allOf', 'anyOf', 'oneOf'
         if (schema.getAllOf() != null) {
             for (int i = 0; i < schema.getAllOf().size(); i++) {
-                scanSchemaForPatterns(schema.getAllOf().get(i), currentLocation + "/allOf/" + i, results, validateJava, validateJs, validateGoRe2j);
+                Object allOfObject = schema.getAllOf().get(i);
+                if (allOfObject instanceof Schema) {
+                    Schema allOfSchema = (Schema) allOfObject;
+                    scanSchemaForPatterns(allOfSchema, currentLocation + "/allOf/" + i, results, validateJava, validateJs, validateGoRe2j);
+                }
             }
         }
         if (schema.getAnyOf() != null) {
             for (int i = 0; i < schema.getAnyOf().size(); i++) {
-                scanSchemaForPatterns(schema.getAnyOf().get(i), currentLocation + "/anyOf/" + i, results, validateJava, validateJs, validateGoRe2j);
+                Object anyOfObject = schema.getAnyOf().get(i);
+                if (anyOfObject instanceof Schema) {
+                    Schema anyOfSchema = (Schema) anyOfObject;
+                    scanSchemaForPatterns(anyOfSchema, currentLocation + "/anyOf/" + i, results, validateJava, validateJs, validateGoRe2j);
+                }
             }
         }
         if (schema.getOneOf() != null) {
             for (int i = 0; i < schema.getOneOf().size(); i++) {
-                scanSchemaForPatterns(schema.getOneOf().get(i), currentLocation + "/oneOf/" + i, results, validateJava, validateJs, validateGoRe2j);
+                Object oneOfObject = schema.getOneOf().get(i);
+                if (oneOfObject instanceof Schema) {
+                    Schema oneOfSchema = (Schema) oneOfObject;
+                    scanSchemaForPatterns(oneOfSchema, currentLocation + "/oneOf/" + i, results, validateJava, validateJs, validateGoRe2j);
+                }
             }
+        }
+
+        // Check additional properties if it's a Schema
+        if (schema.getAdditionalProperties() != null && schema.getAdditionalProperties() instanceof Schema) {
+            Schema additionalPropsSchema = (Schema) schema.getAdditionalProperties();
+            scanSchemaForPatterns(additionalPropsSchema, currentLocation + "/additionalProperties", results, validateJava, validateJs, validateGoRe2j);
         }
     }
 
