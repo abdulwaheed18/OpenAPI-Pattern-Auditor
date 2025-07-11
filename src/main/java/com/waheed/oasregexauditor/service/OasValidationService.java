@@ -1,6 +1,7 @@
 package com.waheed.oasregexauditor.service;
 
 import com.waheed.oasregexauditor.model.ValidationResult;
+import com.waheed.oasregexauditor.service.validators.PatternQualityValidator;
 import com.waheed.oasregexauditor.service.validators.RegexValidator;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.PathItem;
@@ -26,10 +27,12 @@ public class OasValidationService {
     private static final Logger log = LoggerFactory.getLogger(OasValidationService.class);
 
     private final List<RegexValidator> validators;
+    private final PatternQualityValidator qualityValidator;
 
     @Autowired
-    public OasValidationService(List<RegexValidator> validators) {
+    public OasValidationService(List<RegexValidator> validators, PatternQualityValidator qualityValidator) {
         this.validators = validators;
+        this.qualityValidator = qualityValidator;
     }
 
     /**
@@ -46,25 +49,27 @@ public class OasValidationService {
         List<RegexValidator> activeValidators = getActiveValidators(validateJava, validateJs, validateGoRe2j);
 
         if (activeValidators.isEmpty()) {
-            log.warn("No validation engines selected. Skipping validation.");
-            return results; // No validators selected, return empty list.
+            log.warn("No validation engines selected. Skipping syntax validation.");
         }
 
-        // Consumer to process a found pattern with all active validators
+        // Consumer to process a found pattern with all active validators and quality checks
         Consumer<PatternLocation> patternProcessor = (loc) -> {
+            // 1. Perform engine-specific syntax validation
             for (RegexValidator validator : activeValidators) {
                 results.add(validator.validate(loc.path, loc.pattern));
             }
+            // 2. Perform quality and security checks
+            results.addAll(qualityValidator.validate(loc.path, loc.pattern));
         };
 
-        // 1. Scan component schemas
+        // Scan component schemas
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
             openAPI.getComponents().getSchemas().forEach((schemaName, schema) ->
                     scanSchemaForPatterns(schema, "#/components/schemas/" + schemaName, patternProcessor)
             );
         }
 
-        // 2. Scan paths for parameters, request bodies, and responses
+        // Scan paths for parameters, request bodies, and responses
         if (openAPI.getPaths() != null) {
             openAPI.getPaths().forEach((path, pathItem) ->
                     scanPathItem(path, pathItem, patternProcessor)
