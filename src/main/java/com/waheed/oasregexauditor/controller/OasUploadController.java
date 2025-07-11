@@ -1,7 +1,6 @@
-// File: src/main/java/com/waheed/oasregexauditor/controller/OasUploadController.java
 package com.waheed.oasregexauditor.controller;
 
-import com.waheed.oasregexauditor.model.ValidationResult;
+import com.waheed.oasregexauditor.model.GroupedValidationResult;
 import com.waheed.oasregexauditor.service.OasValidationService;
 import com.waheed.oasregexauditor.service.ResultsCacheService;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -77,12 +76,11 @@ public class OasUploadController {
                 return "fragments/results :: results-content";
             }
 
-            List<ValidationResult> results = oasValidationService.validateOasRegex(
+            List<GroupedValidationResult> results = oasValidationService.validateOasRegex(
                     openAPI, validateJava, validateJs, validateGoRe2j,
                     qualityCheckPermissive, qualityCheckAnchors, qualityCheckRedos,
                     checkNaming, checkOperationId, checkSummary, checkSchemaDescription, checkSchemaExample);
 
-            // Generate ID, cache results, and create shareable link
             String resultsId = UUID.randomUUID().toString().substring(0, 8);
             resultsCacheService.store(resultsId, results);
             String shareableLink = ServletUriComponentsBuilder.fromCurrentContextPath()
@@ -93,7 +91,6 @@ public class OasUploadController {
             model.addAttribute("message", "Analysis complete for " + file.getOriginalFilename());
             model.addAttribute("results", results);
             model.addAttribute("shareableLink", shareableLink);
-            log.info("Validation complete. Found {} results. Shareable link: {}", results.size(), shareableLink);
 
         } catch (IOException e) {
             log.error("Error reading file.", e);

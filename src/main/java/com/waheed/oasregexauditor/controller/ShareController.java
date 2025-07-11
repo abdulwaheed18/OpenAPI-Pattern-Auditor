@@ -1,6 +1,6 @@
 package com.waheed.oasregexauditor.controller;
 
-import com.waheed.oasregexauditor.model.ValidationResult;
+import com.waheed.oasregexauditor.model.GroupedValidationResult;
 import com.waheed.oasregexauditor.service.ResultsCacheService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -29,7 +29,8 @@ public class ShareController {
      */
     @GetMapping("/r/{id}")
     public String showSharedResults(@PathVariable String id, Model model) {
-        Optional<List<ValidationResult>> resultsOptional = resultsCacheService.get(id);
+        // This now correctly expects Optional<List<GroupedValidationResult>>
+        Optional<List<GroupedValidationResult>> resultsOptional = resultsCacheService.get(id);
 
         if (resultsOptional.isPresent()) {
             model.addAttribute("results", resultsOptional.get());
