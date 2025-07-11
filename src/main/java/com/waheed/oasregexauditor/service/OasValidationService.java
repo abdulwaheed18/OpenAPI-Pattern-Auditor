@@ -1,248 +1,209 @@
 package com.waheed.oasregexauditor.service;
 
 import com.waheed.oasregexauditor.model.ValidationResult;
+import com.waheed.oasregexauditor.service.validators.RegexValidator;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.google.re2j.PatternSyntaxException;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
+import java.util.function.Consumer;
 
+/**
+ * Main service to orchestrate the validation of regex patterns within an OpenAPI specification.
+ * It traverses the OpenAPI document model and uses specific validator components for each selected engine.
+ */
 @Service
 public class OasValidationService {
 
+    private static final Logger log = LoggerFactory.getLogger(OasValidationService.class);
+
+    private final List<RegexValidator> validators;
+
+    @Autowired
+    public OasValidationService(List<RegexValidator> validators) {
+        this.validators = validators;
+    }
+
     /**
-     * Validates regex patterns found in an OpenAPI object against specified engines.
+     * Validates all regex patterns found in an OpenAPI object against the selected engines.
+     *
      * @param openAPI The parsed OpenAPI object.
-     * @param validateJava True to validate against Java regex.
-     * @param validateJs True to validate against JavaScript regex.
-     * @param validateGoRe2j True to validate against Go (RE2J) regex.
-     * @return A list of ValidationResult objects.
+     * @param validateJava True to validate against the Java regex engine.
+     * @param validateJs True to validate against the JavaScript regex engine.
+     * @param validateGoRe2j True to validate against the Go (RE2J) regex engine.
+     * @return A list of all validation results.
      */
     public List<ValidationResult> validateOasRegex(OpenAPI openAPI, boolean validateJava, boolean validateJs, boolean validateGoRe2j) {
         List<ValidationResult> results = new ArrayList<>();
+        List<RegexValidator> activeValidators = getActiveValidators(validateJava, validateJs, validateGoRe2j);
 
-        // 1. Scan Schemas for 'pattern' properties
+        if (activeValidators.isEmpty()) {
+            log.warn("No validation engines selected. Skipping validation.");
+            return results; // No validators selected, return empty list.
+        }
+
+        // Consumer to process a found pattern with all active validators
+        Consumer<PatternLocation> patternProcessor = (loc) -> {
+            for (RegexValidator validator : activeValidators) {
+                results.add(validator.validate(loc.path, loc.pattern));
+            }
+        };
+
+        // 1. Scan component schemas
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
-            Map<String, Schema> schemas = openAPI.getComponents().getSchemas();
-            for (Map.Entry<String, Schema> schemaEntry : schemas.entrySet()) {
-                String schemaName = schemaEntry.getKey();
-                Schema schema = schemaEntry.getValue();
-                scanSchemaForPatterns(schema, "#/components/schemas/" + schemaName, results, validateJava, validateJs, validateGoRe2j);
+            openAPI.getComponents().getSchemas().forEach((schemaName, schema) ->
+                    scanSchemaForPatterns(schema, "#/components/schemas/" + schemaName, patternProcessor)
+            );
+        }
+
+        // 2. Scan paths for parameters, request bodies, and responses
+        if (openAPI.getPaths() != null) {
+            openAPI.getPaths().forEach((path, pathItem) ->
+                    scanPathItem(path, pathItem, patternProcessor)
+            );
+        }
+
+        return results;
+    }
+
+    /**
+     * Filters the available validators based on user selection.
+     */
+    private List<RegexValidator> getActiveValidators(boolean java, boolean js, boolean go) {
+        List<RegexValidator> active = new ArrayList<>();
+        for (RegexValidator validator : validators) {
+            if (java && "Java".equals(validator.getEngineName())) active.add(validator);
+            if (js && "JavaScript".equals(validator.getEngineName())) active.add(validator);
+            if (go && "Go (RE2J)".equals(validator.getEngineName())) active.add(validator);
+        }
+        return active;
+    }
+
+    /**
+     * Scans a PathItem for regex patterns in its parameters and operations.
+     */
+    private void scanPathItem(String path, PathItem pathItem, Consumer<PatternLocation> processor) {
+        String pathPrefix = "#/paths/" + escapePath(path);
+
+        // Path-level parameters
+        if (pathItem.getParameters() != null) {
+            for (int i = 0; i < pathItem.getParameters().size(); i++) {
+                Parameter param = pathItem.getParameters().get(i);
+                if (param.getSchema() != null && param.getSchema().getPattern() != null) {
+                    processor.accept(new PatternLocation(
+                            pathPrefix + "/parameters/" + i + "/schema/pattern",
+                            param.getSchema().getPattern()
+                    ));
+                }
             }
         }
 
-        // 2. Scan Path Parameters and Operations for 'pattern' properties
-        if (openAPI.getPaths() != null) {
-            Map<String, PathItem> paths = openAPI.getPaths();
-            for (Map.Entry<String, PathItem> pathEntry : paths.entrySet()) {
-                String path = pathEntry.getKey();
-                PathItem pathItem = pathEntry.getValue();
+        // Operation-level scanning (GET, POST, etc.)
+        pathItem.readOperationsMap().forEach((httpMethod, operation) -> {
+            String opPrefix = pathPrefix + "/" + httpMethod.name().toLowerCase();
 
-                // Check path parameters
-                if (pathItem.getParameters() != null) {
-                    for (Parameter parameter : pathItem.getParameters()) {
-                        if (parameter.getSchema() != null && parameter.getSchema().getPattern() != null) {
-                            String regex = parameter.getSchema().getPattern();
-                            String location = "#/paths/" + path + "/parameters/" + parameter.getName() + "/schema/pattern";
-                            validatePattern(location, regex, results, validateJava, validateJs, validateGoRe2j);
-                        }
+            // Operation parameters
+            if (operation.getParameters() != null) {
+                for (int i = 0; i < operation.getParameters().size(); i++) {
+                    Parameter param = operation.getParameters().get(i);
+                    if (param.getSchema() != null && param.getSchema().getPattern() != null) {
+                        processor.accept(new PatternLocation(
+                                opPrefix + "/parameters/" + i + "/schema/pattern",
+                                param.getSchema().getPattern()
+                        ));
                     }
                 }
+            }
 
-                // Check operation parameters within each HTTP method
-                pathItem.readOperationsMap().forEach((httpMethod, operation) -> {
-                    if (operation.getParameters() != null) {
-                        for (Parameter parameter : operation.getParameters()) {
-                            if (parameter.getSchema() != null && parameter.getSchema().getPattern() != null) {
-                                String regex = parameter.getSchema().getPattern();
-                                String location = "#/paths/" + path + "/" + httpMethod.name().toLowerCase() + "/parameters/" + parameter.getName() + "/schema/pattern";
-                                validatePattern(location, regex, results, validateJava, validateJs, validateGoRe2j);
-                            }
-                        }
+            // Request Body
+            if (operation.getRequestBody() != null && operation.getRequestBody().getContent() != null) {
+                operation.getRequestBody().getContent().forEach((mediaType, mediaTypeObject) -> {
+                    if (mediaTypeObject.getSchema() != null) {
+                        scanSchemaForPatterns(mediaTypeObject.getSchema(), opPrefix + "/requestBody/content/" + escapePath(mediaType) + "/schema", processor);
                     }
-                    // Check request body schemas for patterns
-                    if (operation.getRequestBody() != null && operation.getRequestBody().getContent() != null) {
-                        operation.getRequestBody().getContent().forEach((mediaType, mediaTypeObject) -> {
+                });
+            }
+
+            // Responses
+            if (operation.getResponses() != null) {
+                operation.getResponses().forEach((responseCode, apiResponse) -> {
+                    if (apiResponse.getContent() != null) {
+                        apiResponse.getContent().forEach((mediaType, mediaTypeObject) -> {
                             if (mediaTypeObject.getSchema() != null) {
-                                scanSchemaForPatterns(mediaTypeObject.getSchema(), "#/paths/" + path + "/" + httpMethod.name().toLowerCase() + "/requestBody/content/" + mediaType + "/schema", results, validateJava, validateJs, validateGoRe2j);
-                            }
-                        });
-                    }
-                    // Check response body schemas for patterns
-                    if (operation.getResponses() != null) {
-                        operation.getResponses().forEach((responseCode, apiResponse) -> {
-                            if (apiResponse.getContent() != null) {
-                                apiResponse.getContent().forEach((mediaType, mediaTypeObject) -> {
-                                    if (mediaTypeObject.getSchema() != null) {
-                                        scanSchemaForPatterns(mediaTypeObject.getSchema(), "#/paths/" + path + "/" + httpMethod.name().toLowerCase() + "/responses/" + responseCode + "/content/" + mediaType + "/schema", results, validateJava, validateJs, validateGoRe2j);
-                                    }
-                                });
+                                scanSchemaForPatterns(mediaTypeObject.getSchema(), opPrefix + "/responses/" + responseCode + "/content/" + escapePath(mediaType) + "/schema", processor);
                             }
                         });
                     }
                 });
             }
-        }
-        return results;
+        });
     }
 
     /**
-     * Recursively scans a schema for 'pattern' properties.
+     * Recursively scans a Schema object and its children for 'pattern' properties.
      */
-    private void scanSchemaForPatterns(Schema schema, String currentLocation, List<ValidationResult> results,
-                                       boolean validateJava, boolean validateJs, boolean validateGoRe2j) {
+    private void scanSchemaForPatterns(Schema<?> schema, String currentLocation, Consumer<PatternLocation> processor) {
         if (schema == null) {
             return;
         }
 
-        // Check the current schema's pattern
+        // Check the pattern on the current schema
         if (schema.getPattern() != null) {
-            validatePattern(currentLocation + "/pattern", schema.getPattern(), results, validateJava, validateJs, validateGoRe2j);
+            processor.accept(new PatternLocation(currentLocation + "/pattern", schema.getPattern()));
         }
 
-        // Check properties within the schema
+        // Recursively scan properties
         if (schema.getProperties() != null) {
-            Map<String, Schema> properties = schema.getProperties();
-            // Handle potential raw map by explicit casting
-            for (Map.Entry<String, ?> entry : properties.entrySet()) {
-                String propName = entry.getKey();
-                Object propValue = entry.getValue();
-
-                // Safe cast to Schema
-                if (propValue instanceof Schema) {
-                    Schema propSchema = (Schema) propValue;
-                    scanSchemaForPatterns(propSchema, currentLocation + "/properties/" + propName, results, validateJava, validateJs, validateGoRe2j);
-                }
-            }
+            schema.getProperties().forEach((propName, propSchema) ->
+                    scanSchemaForPatterns((Schema<?>) propSchema, currentLocation + "/properties/" + propName, processor)
+            );
         }
 
-        // Check items in array schemas
+        // Recursively scan array items
         if (schema.getItems() != null) {
-            scanSchemaForPatterns(schema.getItems(), currentLocation + "/items", results, validateJava, validateJs, validateGoRe2j);
+            scanSchemaForPatterns(schema.getItems(), currentLocation + "/items", processor);
         }
 
-        // Check 'allOf', 'anyOf', 'oneOf'
-        if (schema.getAllOf() != null) {
-            for (int i = 0; i < schema.getAllOf().size(); i++) {
-                Object allOfObject = schema.getAllOf().get(i);
-                if (allOfObject instanceof Schema) {
-                    Schema allOfSchema = (Schema) allOfObject;
-                    scanSchemaForPatterns(allOfSchema, currentLocation + "/allOf/" + i, results, validateJava, validateJs, validateGoRe2j);
-                }
+        // Recursively scan composition keywords
+        scanComposition(schema.getAllOf(), "allOf", currentLocation, processor);
+        scanComposition(schema.getAnyOf(), "anyOf", currentLocation, processor);
+        scanComposition(schema.getOneOf(), "oneOf", currentLocation, processor);
+
+        // Recursively scan additionalProperties if it's a schema
+        if (schema.getAdditionalProperties() instanceof Schema) {
+            scanSchemaForPatterns((Schema<?>) schema.getAdditionalProperties(), currentLocation + "/additionalProperties", processor);
+        }
+    }
+
+    /**
+     * Helper to scan composition arrays (allOf, anyOf, oneOf).
+     */
+    private void scanComposition(List<Schema> schemas, String keyword, String currentLocation, Consumer<PatternLocation> processor) {
+        if (schemas != null) {
+            for (int i = 0; i < schemas.size(); i++) {
+                scanSchemaForPatterns(schemas.get(i), currentLocation + "/" + keyword + "/" + i, processor);
             }
         }
-        if (schema.getAnyOf() != null) {
-            for (int i = 0; i < schema.getAnyOf().size(); i++) {
-                Object anyOfObject = schema.getAnyOf().get(i);
-                if (anyOfObject instanceof Schema) {
-                    Schema anyOfSchema = (Schema) anyOfObject;
-                    scanSchemaForPatterns(anyOfSchema, currentLocation + "/anyOf/" + i, results, validateJava, validateJs, validateGoRe2j);
-                }
-            }
-        }
-        if (schema.getOneOf() != null) {
-            for (int i = 0; i < schema.getOneOf().size(); i++) {
-                Object oneOfObject = schema.getOneOf().get(i);
-                if (oneOfObject instanceof Schema) {
-                    Schema oneOfSchema = (Schema) oneOfObject;
-                    scanSchemaForPatterns(oneOfSchema, currentLocation + "/oneOf/" + i, results, validateJava, validateJs, validateGoRe2j);
-                }
-            }
-        }
-
-        // Check additional properties if it's a Schema
-        if (schema.getAdditionalProperties() != null && schema.getAdditionalProperties() instanceof Schema) {
-            Schema additionalPropsSchema = (Schema) schema.getAdditionalProperties();
-            scanSchemaForPatterns(additionalPropsSchema, currentLocation + "/additionalProperties", results, validateJava, validateJs, validateGoRe2j);
-        }
     }
 
     /**
-     * Validates a single regex pattern against selected engines and adds results to the list.
+     * Escapes characters in a path segment for use in a JSON Pointer.
+     * ~ becomes ~0 and / becomes ~1.
      */
-    private void validatePattern(String location, String regex, List<ValidationResult> results,
-                                 boolean validateJava, boolean validateJs, boolean validateGoRe2j) {
-        if (validateJava) {
-            validateJavaRegex(location, regex, results);
-        }
-        if (validateJs) {
-            validateJavaScriptRegex(location, regex, results);
-        }
-        if (validateGoRe2j) {
-            validateGoRe2jRegex(location, regex, results);
-        }
+    private String escapePath(String path) {
+        return path.replace("~", "~0").replace("/", "~1");
     }
 
     /**
-     * Validates a regex pattern against Java's regex engine.
+     * Helper record to hold a pattern and its location.
      */
-    private void validateJavaRegex(String location, String regex, List<ValidationResult> results) {
-        try {
-            Pattern.compile(regex);
-            results.add(ValidationResult.success(location, regex, "Java"));
-        } catch (java.util.regex.PatternSyntaxException e) {
-            results.add(ValidationResult.error(location, regex, "Java",
-                    "Invalid Java regex syntax: " + e.getMessage(),
-                    "Check Java regex documentation for syntax rules."));
-        }
-    }
-
-    /**
-     * Validates a regex pattern against a simplified JavaScript regex check.
-     * Note: Full JavaScript regex behavior validation would require an embedded JS engine (e.g., GraalVM JS).
-     * This method primarily checks for common syntax issues that might break JS.
-     */
-    private void validateJavaScriptRegex(String location, String regex, List<ValidationResult> results) {
-        // Simple check: many Java regex patterns are compatible with JS.
-        // The main differences are lookbehinds, named capture groups, and some flags.
-        // For a full validation, you'd need a JS engine.
-        // Here, we'll flag some known incompatibilities as warnings.
-        String message = "Potentially compatible with JavaScript regex. Full behavioral validation requires a JS engine.";
-        String suggestion = "Consider common regex patterns for broader compatibility. Avoid lookbehinds if not strictly necessary.";
-        String issueType = "INFO";
-        String colorClass = "text-green-600";
-
-        if (regex.contains("(?<") || regex.contains("(?<!")) { // Named capture groups or lookbehinds
-            message = "Possible incompatibility: JavaScript regex prior to ES2018 does not support lookbehinds or named capture groups. ES2018+ supports lookbehinds.";
-            suggestion = "Consider refactoring to avoid lookbehinds or named capture groups for broader JS compatibility, or ensure target JS environments support ES2018+.";
-            issueType = "WARNING";
-            colorClass = "text-yellow-600";
-        } else if (regex.contains("\\A") || regex.contains("\\Z")) { // Start/end of string (Java/Perl specific)
-            message = "Possible incompatibility: \\A and \\Z are not standard in JavaScript regex. Use ^ and $ instead.";
-            suggestion = "Replace \\A with ^ and \\Z with $ for JavaScript compatibility.";
-            issueType = "WARNING";
-            colorClass = "text-yellow-600";
-        }
-
-        try {
-            // Attempt to compile with Java, as many JS regex are Java-compatible.
-            // This is a weak check for JS, but better than nothing without a JS engine.
-            Pattern.compile(regex);
-            results.add(new ValidationResult(location, regex, "JavaScript", true, issueType, message, suggestion, colorClass));
-        } catch (java.util.regex.PatternSyntaxException e) {
-            results.add(ValidationResult.error(location, regex, "JavaScript",
-                    "Invalid JavaScript regex syntax (based on Java compatibility check): " + e.getMessage(),
-                    "Check JavaScript regex documentation for syntax rules."));
-        }
-    }
-
-    /**
-     * Validates a regex pattern against Google's RE2J (Go-style) regex engine.
-     */
-    private void validateGoRe2jRegex(String location, String regex, List<ValidationResult> results) {
-        try {
-            com.google.re2j.Pattern.compile(regex);
-            results.add(ValidationResult.success(location, regex, "Go (RE2J)"));
-        } catch (PatternSyntaxException e) {
-            results.add(ValidationResult.error(location, regex, "Go (RE2J)",
-                    "Invalid Go (RE2J) regex syntax or unsupported feature: " + e.getMessage(),
-                    "RE2J is a simpler, faster regex engine. Avoid lookarounds, backreferences, and complex assertions. Use atomic groups (?>...) for non-capturing groups if needed."));
-        }
-    }
+    private record PatternLocation(String path, String pattern) {}
 }
