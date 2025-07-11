@@ -1,3 +1,4 @@
+<!-- File: src/main/resources/templates/upload.html -->
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
@@ -7,37 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-start: #667eea;
-            --primary-end: #764ba2;
-            --background-start: #f0f2f5;
-            --background-end: #e6e9ed;
-        }
-        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, var(--background-start), var(--background-end)); color: #1a202c; }
-        .glass-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(15px); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1); }
-        .btn-primary { background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%); transition: all 0.3s ease; }
-        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3); }
-        .file-drop-zone { border: 3px dashed #cbd5e1; transition: all 0.3s ease; }
-        .file-drop-zone.dragover { border-color: var(--primary-start); background-color: rgba(102, 126, 234, 0.05); transform: scale(1.02); }
-        .checkbox-custom:checked { background-color: var(--primary-start); border-color: var(--primary-start); }
-        .checkbox-custom:checked::after { content: '✓'; color: white; font-size: 14px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-        .status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
-        .status-valid { background-color: #dcfce7; color: #166534; }
-        .status-error { background-color: #fee2e2; color: #991b1b; }
-        .status-warning { background-color: #fef3c7; color: #92400e; }
-        .table-container { max-height: 70vh; overflow-y: auto; }
-        .table-container thead th { position: sticky; top: 0; z-index: 10; background-color: #f8fafc; cursor: pointer; }
-        .table-container thead th .fa-sort { color: #9ca3af; }
-        .table-container thead th .fa-sort-up, .table-container thead th .fa-sort-down { color: var(--primary-start); }
-        .table-container thead th:hover { background-color: #f1f5f9; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-spinner { border: 3px solid #f3f3f3; border-top: 3px solid var(--primary-start); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
-        .table-container::-webkit-scrollbar { width: 8px; }
-        .table-container::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
-        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    </style>
+    <style th:replace="~{fragments/global-styles :: global-styles}"></style>
 </head>
 <body class="flex flex-col min-h-screen">
 
@@ -46,8 +17,8 @@
 <main class="flex-grow">
     <div class="container mx-auto px-4 py-8 max-w-7xl">
         <header class="text-center mb-10">
-            <h1 class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600 mb-2">OpenAPI Pattern Auditor</h1>
-            <p class="text-xl text-gray-600">Validate regex patterns against Java, JavaScript, and Go engines.</p>
+            <h1 class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400 mb-2">OpenAPI Pattern Auditor</h1>
+            <p class="text-xl text-gray-600 dark:text-gray-300">Validate regex patterns against Java, JavaScript, and Go engines.</p>
         </header>
 
         <div class="space-y-8">
@@ -56,73 +27,42 @@
                     <div id="file-drop-zone" class="file-drop-zone rounded-2xl p-8 text-center cursor-pointer">
                         <input type="file" id="oasFile" name="oasFile" accept=".json,.yaml,.yml" class="hidden">
                         <div id="file-display-area">
-                            <i class="fas fa-cloud-arrow-up text-6xl text-gray-400 mb-4"></i>
-                            <p class="text-xl font-semibold text-gray-700">Drop your OpenAPI file here</p>
-                            <p class="text-gray-500">or click to browse (JSON, YAML, YML)</p>
+                            <i class="fas fa-cloud-arrow-up text-6xl text-gray-400 dark:text-gray-500 mb-4"></i>
+                            <p class="text-xl font-semibold text-gray-700 dark:text-gray-200">Drop your OpenAPI file here</p>
+                            <p class="text-gray-500 dark:text-gray-400">or click to browse (JSON, YAML, YML)</p>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <fieldset class="bg-gray-50/50 p-6 rounded-xl">
-                            <legend class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-cogs mr-2"></i>Select Validation Engines</legend>
+                        <fieldset class="bg-gray-50/50 dark:bg-gray-800/30 p-6 rounded-xl">
+                            <legend class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center"><i class="fas fa-cogs mr-2"></i>Engines</legend>
                             <div class="space-y-3">
-                                <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                                    <input type="checkbox" name="validateJava" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fab fa-java text-2xl text-red-500"></i><span class="font-medium">Java Syntax</span>
-                                </label>
-                                <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                                    <input type="checkbox" name="validateJs" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fab fa-js-square text-2xl text-yellow-500"></i><span class="font-medium">JavaScript Syntax</span>
-                                </label>
-                                <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                                    <input type="checkbox" name="validateGoRe2j" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fab fa-google text-2xl text-blue-500"></i><span class="font-medium">Go (RE2J) Syntax</span>
-                                </label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="validateJava" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fab fa-java text-2xl text-red-500"></i><span class="font-medium">Java</span></label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="validateJs" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fab fa-js-square text-2xl text-yellow-500"></i><span class="font-medium">JavaScript</span></label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="validateGoRe2j" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fab fa-google text-2xl text-blue-500"></i><span class="font-medium">Go (RE2J)</span></label>
                             </div>
                         </fieldset>
-
-                        <fieldset class="bg-gray-50/50 p-6 rounded-xl">
-                            <legend class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-shield-alt mr-2"></i>Quality & Security Checks</legend>
+                        <fieldset class="bg-gray-50/50 dark:bg-gray-800/30 p-6 rounded-xl">
+                            <legend class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center"><i class="fas fa-shield-alt mr-2"></i>Quality</legend>
                             <div class="space-y-3">
-                                <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                                    <input type="checkbox" name="qualityCheckPermissive" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fas fa-exclamation-triangle text-xl text-yellow-500"></i><span class="font-medium">Overly Permissive</span>
-                                </label>
-                                <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                                    <input type="checkbox" name="qualityCheckAnchors" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fas fa-anchor text-xl text-blue-500"></i><span class="font-medium">Missing Anchors</span>
-                                </label>
-                                <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                                    <input type="checkbox" name="qualityCheckRedos" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fas fa-bomb text-xl text-red-500"></i><span class="font-medium">Potential ReDoS</span>
-                                </label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="qualityCheckPermissive" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-exclamation-triangle text-xl text-yellow-500"></i><span class="font-medium">Permissive</span></label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="qualityCheckAnchors" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-anchor text-xl text-blue-500"></i><span class="font-medium">Anchors</span></label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="qualityCheckRedos" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-bomb text-xl text-red-500"></i><span class="font-medium">ReDoS</span></label>
                             </div>
                         </fieldset>
-
-                        <fieldset class="bg-gray-50/50 p-6 rounded-xl md:col-span-2 lg:col-span-1">
-                            <legend class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-ruler-combined mr-2"></i>API Best Practices</legend>
+                        <fieldset class="bg-gray-50/50 dark:bg-gray-800/30 p-6 rounded-xl md:col-span-2 lg:col-span-1">
+                            <legend class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center"><i class="fas fa-ruler-combined mr-2"></i>Best Practices</legend>
                             <div class="space-y-3">
-                                <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                                    <input type="checkbox" name="checkNaming" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fas fa-font text-xl text-teal-500"></i><span class="font-medium">Path Naming</span>
-                                </label>
-                                <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                                    <input type="checkbox" name="checkOperationId" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fas fa-fingerprint text-xl text-cyan-500"></i><span class="font-medium">Missing OperationID</span>
-                                </label>
-                                <label class="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:border-indigo-300 transition-colors cursor-pointer">
-                                    <input type="checkbox" name="checkSummary" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 relative">
-                                    <i class="fas fa-align-left text-xl text-sky-500"></i><span class="font-medium">Missing Summary</span>
-                                </label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="checkNaming" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-font text-xl text-teal-500"></i><span class="font-medium">Path Naming</span></label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="checkOperationId" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-fingerprint text-xl text-cyan-500"></i><span class="font-medium">OperationID</span></label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="checkSummary" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-align-left text-xl text-sky-500"></i><span class="font-medium">Summary</span></label>
                             </div>
                         </fieldset>
                     </div>
 
                     <div class="text-center pt-4">
                         <button type="submit" id="submit-button" class="btn-primary text-white font-semibold py-4 px-12 rounded-full text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mx-auto">
-                            <span id="button-content" class="flex items-center">
-                                <i class="fas fa-search mr-2"></i>Analyze OpenAPI File
-                            </span>
+                            <span id="button-content" class="flex items-center"><i class="fas fa-search mr-3"></i>Analyze OpenAPI File</span>
                         </button>
                     </div>
                 </form>
@@ -137,12 +77,16 @@
 
 <div th:replace="~{fragments/footer :: page-footer}"></div>
 
+<script th:replace="~{fragments/global-scripts :: global-scripts}"></script>
 <script>
+    // Page-specific script for upload form logic
     document.addEventListener('DOMContentLoaded', () => {
+        const uploadForm = document.getElementById('uploadForm');
+        if (!uploadForm) return; // Only run on the upload page
+
         const dropZone = document.getElementById('file-drop-zone');
         const fileInput = document.getElementById('oasFile');
         const fileDisplay = document.getElementById('file-display-area');
-        const uploadForm = document.getElementById('uploadForm');
         const submitButton = document.getElementById('submit-button');
         const buttonContent = document.getElementById('button-content');
         const resultsSection = document.getElementById('results-section');
@@ -158,10 +102,7 @@
             handleFileSelect(fileInput.files);
         }, false);
 
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
 
         window.removeFile = function(event) {
             event.stopPropagation();
@@ -173,19 +114,16 @@
             if (files.length > 0) {
                 const file = files[0];
                 fileDisplay.innerHTML = `
-                    <div class="relative w-full p-4 border rounded-lg bg-white text-left">
+                    <div class="relative w-full p-4 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 text-left">
                         <div class="flex items-center space-x-4">
                             <i class="fas fa-file-code text-4xl text-indigo-500"></i>
                             <div class="overflow-hidden">
-                                <p class="font-semibold text-gray-800 truncate">${file.name}</p>
-                                <p class="text-sm text-gray-500">${(file.size / 1024).toFixed(2)} KB</p>
+                                <p class="font-semibold text-gray-800 dark:text-gray-200 truncate">${file.name}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">${(file.size / 1024).toFixed(2)} KB</p>
                             </div>
                         </div>
-                        <button type="button" onclick="removeFile(event)" class="absolute top-2 right-2 text-gray-400 hover:text-red-600 transition-colors">
-                            <i class="fas fa-times-circle text-xl"></i>
-                        </button>
-                    </div>
-                `;
+                        <button type="button" onclick="removeFile(event)" class="absolute top-2 right-2 text-gray-400 hover:text-red-600 dark:hover:text-red-500 transition-colors"><i class="fas fa-times-circle text-xl"></i></button>
+                    </div>`;
             } else {
                  fileDisplay.innerHTML = originalFileDisplayText;
             }
@@ -197,126 +135,29 @@
                 alert('Please select an OpenAPI file first.');
                 return;
             }
-
             submitButton.disabled = true;
             buttonContent.innerHTML = `<div class="loading-spinner"></div><span class="ml-3">Analyzing...</span>`;
             resultsSection.style.opacity = '0.5';
             resultsSection.style.transition = 'opacity 0.3s';
-
             const formData = new FormData(uploadForm);
             try {
                 const response = await fetch('/upload', { method: 'POST', body: formData });
-                if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
-
                 const html = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const newResults = doc.getElementById('results-section');
-
+                const newResults = new DOMParser().parseFromString(html, 'text/html').getElementById('results-section');
                 if (newResults) {
                     resultsSection.innerHTML = newResults.innerHTML;
                     initializeTableControls();
                     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else {
-                    throw new Error('Could not find results section in server response.');
-                }
+                } else { throw new Error('Could not find results section in server response.'); }
             } catch (error) {
                 console.error('Form submission error:', error);
-                resultsSection.innerHTML = `
-                    <div class="glass-card p-8 text-center text-red-600">
-                        <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
-                        <h3 class="text-2xl font-bold">Request Failed</h3>
-                        <p>Could not connect to the server or an error occurred.</p>
-                        <p class="text-sm mt-2 font-mono">${error.message}</p>
-                    </div>`;
+                resultsSection.innerHTML = `<div class="glass-card p-8 text-center text-red-600 dark:text-red-400"><i class="fas fa-exclamation-triangle text-4xl mb-4"></i><h3 class="text-2xl font-bold">Request Failed</h3><p class="dark:text-gray-300">An error occurred during analysis.</p><p class="text-sm mt-2 font-mono">${error.message}</p></div>`;
             } finally {
                 submitButton.disabled = false;
-                buttonContent.innerHTML = `<i class="fas fa-search mr-2"></i>Analyze OpenAPI File`;
+                buttonContent.innerHTML = `<i class="fas fa-search mr-3"></i>Analyze OpenAPI File`;
                 resultsSection.style.opacity = '1';
             }
         });
-
-        // Delegated event listener for collapsible details
-        resultsSection.addEventListener('click', function(event) {
-            const button = event.target.closest('.toggle-details-btn');
-            if (button) {
-                const detailsId = button.getAttribute('data-details-id');
-                toggleDetails(detailsId);
-            }
-        });
-
-        function toggleDetails(elementId) {
-            const element = document.getElementById(elementId);
-            const button = document.querySelector(`[data-details-id="${elementId}"]`);
-            if (element && button) {
-                const icon = button.querySelector('i');
-                if (element.classList.contains('hidden')) {
-                    element.classList.remove('hidden');
-                    button.innerHTML = '<i class="fas fa-chevron-up mr-1"></i>Hide Suggestion';
-                } else {
-                    element.classList.add('hidden');
-                    button.innerHTML = '<i class="fas fa-chevron-down mr-1"></i>Show Suggestion';
-                }
-            }
-        }
-
-
-        function initializeTableControls() {
-            const filterInput = document.getElementById('filterInput');
-            filterInput?.addEventListener('keyup', filterTable);
-
-            document.querySelectorAll('#resultsTable thead th').forEach((header, index) => {
-                if (header.dataset.sortable) {
-                    header.addEventListener('click', () => {
-                        sortTable(index);
-                    });
-                }
-            });
-        }
-
-        function filterTable() {
-            const filter = document.getElementById('filterInput').value.toUpperCase();
-            const rows = document.querySelectorAll('#resultsTable tbody tr');
-            rows.forEach(row => {
-                const cells = row.getElementsByTagName('td');
-                let found = false;
-                for (let cell of cells) {
-                    if (cell.textContent.toUpperCase().indexOf(filter) > -1) {
-                        found = true;
-                        break;
-                    }
-                }
-                row.style.display = found ? '' : 'none';
-            });
-        }
-
-        function sortTable(columnIndex) {
-            const table = document.getElementById('resultsTable');
-            const tbody = table.tBodies[0];
-            const rows = Array.from(tbody.rows);
-            const header = table.querySelectorAll('thead th')[columnIndex];
-            const currentDir = header.dataset.sortDir || 'asc';
-            const newDir = currentDir === 'asc' ? 'desc' : 'asc';
-
-            table.querySelectorAll('thead th').forEach(h => {
-                h.removeAttribute('data-sort-dir');
-                h.querySelector('.fa-sort')?.classList.remove('fa-sort-up', 'fa-sort-down');
-            });
-
-            header.setAttribute('data-sort-dir', newDir);
-            header.querySelector('.fa-sort')?.classList.add(newDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
-
-            rows.sort((a, b) => {
-                const cellA = a.cells[columnIndex].innerText.trim();
-                const cellB = b.cells[columnIndex].innerText.trim();
-                const compare = cellA.localeCompare(cellB, undefined, {numeric: true, sensitivity: 'base'});
-                return newDir === 'asc' ? compare : -compare;
-            });
-
-            tbody.append(...rows);
-        }
-
-        initializeTableControls();
     });
 </script>
 </body>

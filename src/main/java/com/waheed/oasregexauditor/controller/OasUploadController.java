@@ -1,7 +1,9 @@
+// File: src/main/java/com/waheed/oasregexauditor/controller/OasUploadController.java
 package com.waheed.oasregexauditor.controller;
 
 import com.waheed.oasregexauditor.model.ValidationResult;
 import com.waheed.oasregexauditor.service.OasValidationService;
+import com.waheed.oasregexauditor.service.ResultsCacheService;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.ParseOptions;
@@ -15,11 +17,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 @Controller
 public class OasUploadController {
@@ -29,6 +33,9 @@ public class OasUploadController {
     @Autowired
     private OasValidationService oasValidationService;
 
+    @Autowired
+    private ResultsCacheService resultsCacheService;
+
     @GetMapping("/")
     public String showUploadForm(Model model) {
         model.addAttribute("results", Collections.emptyList());
@@ -37,15 +44,12 @@ public class OasUploadController {
 
     @PostMapping("/upload")
     public String handleFileUpload(@RequestParam("oasFile") MultipartFile file,
-                                   // Engine Syntax Checks
                                    @RequestParam(value = "validateJava", defaultValue = "false") boolean validateJava,
                                    @RequestParam(value = "validateJs", defaultValue = "false") boolean validateJs,
                                    @RequestParam(value = "validateGoRe2j", defaultValue = "false") boolean validateGoRe2j,
-                                   // Quality & Security Checks
                                    @RequestParam(value = "qualityCheckPermissive", defaultValue = "false") boolean qualityCheckPermissive,
                                    @RequestParam(value = "qualityCheckAnchors", defaultValue = "false") boolean qualityCheckAnchors,
                                    @RequestParam(value = "qualityCheckRedos", defaultValue = "false") boolean qualityCheckRedos,
-                                   // NEW: API Design Best Practices
                                    @RequestParam(value = "checkNaming", defaultValue = "false") boolean checkNaming,
                                    @RequestParam(value = "checkOperationId", defaultValue = "false") boolean checkOperationId,
                                    @RequestParam(value = "checkSummary", defaultValue = "false") boolean checkSummary,
@@ -55,39 +59,41 @@ public class OasUploadController {
         if (file.isEmpty()) {
             model.addAttribute("message", "Error: Please select an OpenAPI file to upload.");
             model.addAttribute("results", Collections.emptyList());
-            return "upload";
+            return "fragments/results :: results-content";
         }
-
-        log.info("Received file: {}. Size: {} bytes.", file.getOriginalFilename(), file.getSize());
 
         try {
             String oasContent = new String(file.getBytes(), StandardCharsets.UTF_8);
-
             ParseOptions options = new ParseOptions();
             options.setResolve(true);
-
             SwaggerParseResult parseResult = new OpenAPIV3Parser().readContents(oasContent, null, options);
-
             OpenAPI openAPI = parseResult.getOpenAPI();
+
             if (openAPI == null) {
                 String errorMessage = "Failed to parse OpenAPI file. Errors: " + String.join(", ", parseResult.getMessages());
                 log.error(errorMessage);
                 model.addAttribute("message", "Error: " + errorMessage);
                 model.addAttribute("results", Collections.emptyList());
-                return "upload";
+                return "fragments/results :: results-content";
             }
 
-            // Perform validation with all flags
             List<ValidationResult> results = oasValidationService.validateOasRegex(
-                    openAPI,
-                    validateJava, validateJs, validateGoRe2j,
+                    openAPI, validateJava, validateJs, validateGoRe2j,
                     qualityCheckPermissive, qualityCheckAnchors, qualityCheckRedos,
-                    checkNaming, checkOperationId, checkSummary, checkSchemaDescription, checkSchemaExample
-            );
+                    checkNaming, checkOperationId, checkSummary, checkSchemaDescription, checkSchemaExample);
+
+            // Generate ID, cache results, and create shareable link
+            String resultsId = UUID.randomUUID().toString().substring(0, 8);
+            resultsCacheService.store(resultsId, results);
+            String shareableLink = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/r/{id}")
+                    .buildAndExpand(resultsId)
+                    .toUriString();
 
             model.addAttribute("message", "Analysis complete for " + file.getOriginalFilename());
             model.addAttribute("results", results);
-            log.info("Validation complete. Found {} results.", results.size());
+            model.addAttribute("shareableLink", shareableLink);
+            log.info("Validation complete. Found {} results. Shareable link: {}", results.size(), shareableLink);
 
         } catch (IOException e) {
             log.error("Error reading file.", e);
@@ -99,6 +105,6 @@ public class OasUploadController {
             model.addAttribute("results", Collections.emptyList());
         }
 
-        return "upload";
+        return "fragments/results :: results-content";
     }
 }

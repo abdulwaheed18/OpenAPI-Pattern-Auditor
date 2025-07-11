@@ -1,0 +1,38 @@
+<!-- File: src/main/resources/templates/results-page.html -->
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Results - OpenAPI Pattern Auditor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Use the new global styles fragment -->
+    <style th:replace="~{fragments/global-styles :: global-styles}"></style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+<div th:replace="~{fragments/header :: page-header}"></div>
+
+<main class="flex-grow">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <header class="text-center mb-10">
+            <h1 class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400 mb-2">Analysis Report</h1>
+            <p class="text-xl text-gray-600 dark:text-gray-300">This is a shared view of a previously completed analysis.</p>
+        </header>
+
+        <!-- The results section is populated by the ShareController -->
+        <div id="results-section" class="space-y-8">
+            <th:block th:replace="~{fragments/results :: results-content}"></th:block>
+        </div>
+    </div>
+</main>
+
+<div th:replace="~{fragments/footer :: page-footer}"></div>
+
+<!-- Use the new global scripts fragment -->
+<script th:replace="~{fragments/global-scripts :: global-scripts}"></script>
+
+</body>
+</html>

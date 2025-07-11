@@ -1,0 +1,125 @@
+<!-- File: src/main/resources/templates/fragments/global-scripts.html -->
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<script th:fragment="global-scripts">
+  document.addEventListener('DOMContentLoaded', () => {
+      // --- Dark Mode Logic ---
+      const themeToggleBtn = document.getElementById('theme-toggle');
+      const sunIcon = document.getElementById('theme-toggle-sun-icon');
+      const moonIcon = document.getElementById('theme-toggle-moon-icon');
+
+      const applyTheme = (theme) => {
+          if (theme === 'dark') {
+              document.documentElement.classList.add('dark');
+              sunIcon?.classList.remove('hidden');
+              moonIcon?.classList.add('hidden');
+          } else {
+              document.documentElement.classList.remove('dark');
+              sunIcon?.classList.add('hidden');
+              moonIcon?.classList.remove('hidden');
+          }
+      };
+
+      themeToggleBtn?.addEventListener('click', () => {
+          const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+          localStorage.setItem('theme', newTheme);
+          applyTheme(newTheme);
+      });
+
+      // Set initial theme based on localStorage or system preference
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      applyTheme(savedTheme || (prefersDark ? 'dark' : 'light'));
+
+      // --- Dynamic UI Logic for Results Section ---
+      const resultsSection = document.getElementById('results-section');
+      if (resultsSection) {
+          // Use a single delegated event listener for better performance
+          resultsSection.addEventListener('click', function(event) {
+              const button = event.target.closest('button');
+              if (!button) return;
+
+              if (button.classList.contains('toggle-details-btn')) {
+                  toggleDetails(button.getAttribute('data-details-id'));
+              } else if (button.classList.contains('copy-regex-btn')) {
+                  copyToClipboard(button.getAttribute('data-clipboard-text'), button);
+              } else if (button.classList.contains('copy-link-btn')) {
+                  const linkInput = document.getElementById('share-link-input');
+                  copyToClipboard(linkInput.value, button);
+              }
+          });
+          initializeTableControls();
+      }
+  });
+
+  function toggleDetails(elementId) {
+      const element = document.getElementById(elementId);
+      const button = document.querySelector(`[data-details-id="${elementId}"]`);
+      if (element && button) {
+          if (element.classList.contains('hidden')) {
+              element.classList.remove('hidden');
+              button.innerHTML = '<i class="fas fa-chevron-up mr-1"></i>Hide Suggestion';
+          } else {
+              element.classList.add('hidden');
+              button.innerHTML = '<i class="fas fa-chevron-down mr-1"></i>Show Suggestion';
+          }
+      }
+  }
+
+  function copyToClipboard(text, buttonElement) {
+      navigator.clipboard.writeText(text).then(() => {
+          const originalContent = buttonElement.innerHTML;
+          buttonElement.innerHTML = '<i class="fas fa-check text-green-500"></i> Copied!';
+          buttonElement.disabled = true;
+          setTimeout(() => {
+              buttonElement.innerHTML = originalContent;
+              buttonElement.disabled = false;
+          }, 2000);
+      }).catch(err => {
+          console.error('Failed to copy text: ', err);
+          alert('Failed to copy text. Your browser may not support this feature.');
+      });
+  }
+
+  function initializeTableControls() {
+      document.getElementById('filterInput')?.addEventListener('keyup', filterContent);
+      document.querySelectorAll('#resultsTable thead th[data-sortable="true"]')?.forEach((header, index) => {
+          header.addEventListener('click', () => sortTable(index));
+      });
+  }
+
+  function filterContent() {
+      const filter = document.getElementById('filterInput').value.toUpperCase();
+      // Filter desktop table
+      document.querySelectorAll('#resultsTable tbody tr').forEach(row => {
+          row.style.display = row.textContent.toUpperCase().includes(filter) ? '' : 'none';
+      });
+      // Filter mobile cards
+      document.querySelectorAll('.mobile-result-card').forEach(card => {
+          card.style.display = card.textContent.toUpperCase().includes(filter) ? '' : 'none';
+      });
+  }
+
+  function sortTable(columnIndex) {
+      const table = document.getElementById('resultsTable');
+      if (!table) return;
+      const tbody = table.tBodies[0];
+      const rows = Array.from(tbody.rows);
+      const header = table.querySelectorAll('thead th')[columnIndex];
+      const newDir = header.dataset.sortDir === 'asc' ? 'desc' : 'asc';
+
+      table.querySelectorAll('thead th').forEach(h => h.removeAttribute('data-sort-dir'));
+      header.setAttribute('data-sort-dir', newDir);
+
+      rows.sort((a, b) => {
+          const cellA = a.cells[columnIndex].innerText.trim();
+          const cellB = b.cells[columnIndex].innerText.trim();
+          const compare = cellA.localeCompare(cellB, undefined, {numeric: true, sensitivity: 'base'});
+          return newDir === 'asc' ? compare : -compare;
+      });
+      tbody.append(...rows);
+  }
+</script>
+</body>
+</html>
