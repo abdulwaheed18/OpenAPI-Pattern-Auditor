@@ -24,6 +24,7 @@
         <div class="space-y-8">
             <div class="glass-card p-8">
                 <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" class="space-y-6">
+                    <!-- Form content remains the same -->
                     <div id="file-drop-zone" class="file-drop-zone rounded-2xl p-8 text-center cursor-pointer">
                         <input type="file" id="oasFile" name="oasFile" accept=".json,.yaml,.yml" class="hidden">
                         <div id="file-display-area">
@@ -67,8 +68,18 @@
                     </div>
                 </form>
             </div>
+            <!-- Results Section -->
             <div id="results-section" class="space-y-8">
-                <th:block th:replace="~{fragments/results :: results-content}"></th:block>
+                <!-- Initial Empty State -->
+                <div th:if="${initialView}" id="empty-state" class="glass-card p-12 text-center">
+                    <i class="fas fa-file-import text-6xl text-indigo-300 dark:text-indigo-500 mb-6"></i>
+                    <h3 class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-2">Ready for Analysis</h3>
+                    <p class="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                        Upload your OpenAPI specification file, select the validation checks you want to perform, and click "Analyze" to see the results here.
+                    </p>
+                </div>
+                <!-- This block will be replaced by the results fragment via AJAX -->
+                <th:block th:unless="${initialView}" th:replace="~{fragments/results :: results-content}"></th:block>
             </div>
         </div>
     </div>
@@ -130,7 +141,10 @@
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (fileInput.files.length === 0) {
-                alert('Please select an OpenAPI file first.');
+                // A more noticeable alert
+                const fileDropZone = document.getElementById('file-drop-zone');
+                fileDropZone.classList.add('border-red-500', 'animate-pulse');
+                setTimeout(() => fileDropZone.classList.remove('border-red-500', 'animate-pulse'), 2000);
                 return;
             }
             submitButton.disabled = true;
@@ -141,6 +155,7 @@
             try {
                 const response = await fetch('/upload', { method: 'POST', body: formData });
                 const html = await response.text();
+                // The empty state will be removed when the new content is inserted
                 resultsSection.innerHTML = html;
                 initializeTableControls();
                 resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });

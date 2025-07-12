@@ -1,6 +1,7 @@
 package com.waheed.oasregexauditor.controller;
 
 import com.waheed.oasregexauditor.model.GroupedValidationResult;
+import com.waheed.oasregexauditor.model.Statistics;
 import com.waheed.oasregexauditor.service.OasValidationService;
 import com.waheed.oasregexauditor.service.ResultsCacheService;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -37,7 +38,8 @@ public class OasUploadController {
 
     @GetMapping("/")
     public String showUploadForm(Model model) {
-        model.addAttribute("results", Collections.emptyList());
+        // Add a flag to indicate that this is the initial view, so the empty state can be shown.
+        model.addAttribute("initialView", true);
         return "upload";
     }
 
@@ -82,11 +84,17 @@ public class OasUploadController {
                     checkNaming, checkOperationId, checkSummary, checkSchemaDescription, checkSchemaExample);
 
             String resultsId = UUID.randomUUID().toString().substring(0, 8);
+            // Use the updated store method
             resultsCacheService.store(resultsId, results);
+
             String shareableLink = ServletUriComponentsBuilder.fromCurrentContextPath()
                     .path("/r/{id}")
                     .buildAndExpand(resultsId)
                     .toUriString();
+
+            // Generate and add statistics to the model
+            Statistics stats = Statistics.fromResults(results);
+            model.addAttribute("stats", stats);
 
             model.addAttribute("message", "Analysis complete for " + file.getOriginalFilename());
             model.addAttribute("results", results);
@@ -102,6 +110,8 @@ public class OasUploadController {
             model.addAttribute("results", Collections.emptyList());
         }
 
+        // The initialView flag is not needed here, as this is the result of a form post.
+        model.addAttribute("initialView", false);
         return "fragments/results :: results-content";
     }
 }

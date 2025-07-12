@@ -5,12 +5,12 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.1</version> <!-- Using 3.3.1 as 3.3.7 might not be released yet, adjust if available -->
+        <version>3.3.1</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.waheed</groupId>
     <artifactId>oas-regex-auditor</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <name>OpenAPI Pattern Auditor</name>
     <description>Audits regex patterns in OpenAPI Specification files</description>
 
@@ -19,6 +19,7 @@
         <swagger-parser.version>2.1.26</swagger-parser.version>
         <re2j.version>1.7</re2j.version>
         <springdoc-openapi.version>2.3.0</springdoc-openapi.version>
+        <caffeine.version>3.1.8</caffeine.version>
     </properties>
 
     <dependencies>
@@ -32,6 +33,17 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
+        <!-- Spring Boot Cache Starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+        <!-- Caffeine Cache -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>${caffeine.version}</version>
+        </dependency>
         <!-- Swagger Parser for reading OAS files -->
         <dependency>
             <groupId>io.swagger.parser.v3</groupId>
@@ -44,13 +56,13 @@
             <artifactId>re2j</artifactId>
             <version>${re2j.version}</version>
         </dependency>
-        <!-- Lombok for boilerplate code reduction (optional but highly recommended) -->
+        <!-- Lombok for boilerplate code reduction -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
-        <!-- Spring Boot DevTools for hot reloading (optional) -->
+        <!-- Spring Boot DevTools for hot reloading -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -63,17 +75,18 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- SpringDoc OpenAPI for Swagger UI (for this app's API docs) -->
+        <!-- SpringDoc OpenAPI for this app's API docs -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc-openapi.version}</version>
         </dependency>
-
+        <!-- GraalVM for JavaScript execution -->
         <dependency>
             <groupId>org.graalvm.js</groupId>
             <artifactId>js</artifactId>
-            <version>23.1.0</version> </dependency>
+            <version>23.1.0</version>
+        </dependency>
         <dependency>
             <groupId>org.graalvm.js</groupId>
             <artifactId>js-scriptengine</artifactId>
