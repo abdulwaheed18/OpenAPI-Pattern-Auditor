@@ -51,6 +51,7 @@
         <header class="text-center mb-10">
             <h1 class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400 mb-2">OpenAPI Pattern Auditor</h1>
             <p class="text-xl text-gray-600 dark:text-gray-300">Validate regex patterns and API design best practices.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Supports OpenAPI Specification (OAS) 2.0, 3.0, and 3.1</p>
         </header>
 
         <div class="space-y-8">
@@ -60,10 +61,10 @@
                     <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
                         <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="input-tabs">
                             <li class="mr-2">
-                                <button type="button" class="tab-btn inline-block p-4 border-b-2 rounded-t-lg" data-tab="upload-tab">Upload File</button>
+                                <button type="button" class="tab-btn inline-flex items-center p-4 border-b-2 rounded-t-lg" data-tab="upload-tab"><i class="fas fa-upload mr-2"></i>Upload File</button>
                             </li>
                             <li class="mr-2">
-                                <button type="button" class="tab-btn inline-block p-4 border-b-2 rounded-t-lg" data-tab="paste-tab">Paste Content</button>
+                                <button type="button" class="tab-btn inline-flex items-center p-4 border-b-2 rounded-t-lg" data-tab="paste-tab"><i class="fas fa-paste mr-2"></i>Paste Content</button>
                             </li>
                         </ul>
                     </div>
@@ -171,8 +172,9 @@
         };
 
         tabsContainer.addEventListener('click', (e) => {
-            if (e.target.classList.contains('tab-btn')) {
-                setActiveTab(e.target.dataset.tab);
+            const button = e.target.closest('.tab-btn');
+            if (button) {
+                setActiveTab(button.dataset.tab);
             }
         });
         setActiveTab('upload-tab');
