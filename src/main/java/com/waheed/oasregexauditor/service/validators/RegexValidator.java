@@ -13,10 +13,11 @@ public interface RegexValidator {
      * Validates the given regex pattern.
      *
      * @param location The JSON Pointer path to the pattern within the OpenAPI specification.
+     * @param lineNumber The line number where the pattern is located in the source file.
      * @param regex The regex pattern string to validate.
      * @return A {@link ValidationResult} object containing the outcome of the validation.
      */
-    ValidationResult validate(String location, String regex);
+    ValidationResult validate(String location, int lineNumber, String regex);
 
     /**
      * Returns the name of the validation engine.

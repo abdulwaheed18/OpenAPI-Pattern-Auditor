@@ -8,6 +8,39 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style th:replace="~{fragments/global-styles :: global-styles}"></style>
+    <style>
+        .line-numbers-wrapper {
+          font-family: monospace;
+          padding: 1rem 0.5rem 1rem 1rem;
+          text-align: right;
+          color: #9ca3af;
+          background-color: #f9fafb;
+          border-right: 1px solid #e5e7eb;
+          user-select: none;
+          font-size: 0.875rem;
+          line-height: 1.5;
+        }
+        .dark .line-numbers-wrapper {
+          background-color: #1f2937;
+          border-right-color: #374151;
+        }
+        .editor-textarea {
+          font-family: monospace;
+          line-height: 1.5;
+          font-size: 0.875rem;
+          border: none;
+          background-color: transparent;
+          resize: vertical;
+          min-height: 300px;
+          flex-grow: 1;
+          padding: 1rem;
+        }
+        .editor-textarea:focus {
+          outline: none;
+          box-shadow: none;
+          --tw-ring-shadow: 0 0 #0000 !important;
+        }
+    </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
@@ -17,24 +50,44 @@
     <div class="container mx-auto px-4 py-8 max-w-7xl">
         <header class="text-center mb-10">
             <h1 class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400 mb-2">OpenAPI Pattern Auditor</h1>
-            <p class="text-xl text-gray-600 dark:text-gray-300">Validate regex patterns against a specific engine.</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Supports OpenAPI Specification (OAS) 2.0, 3.0, and 3.1</p>
+            <p class="text-xl text-gray-600 dark:text-gray-300">Validate regex patterns and API design best practices.</p>
         </header>
 
         <div class="space-y-8">
             <div class="glass-card p-8">
                 <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" class="space-y-6">
-                    <div id="file-drop-zone" class="file-drop-zone rounded-2xl p-8 text-center cursor-pointer">
-                        <input type="file" id="oasFile" name="oasFile" accept=".json,.yaml,.yml" class="hidden">
-                        <div id="file-display-area">
-                            <i class="fas fa-cloud-arrow-up text-6xl text-gray-400 dark:text-gray-500 mb-4"></i>
-                            <p class="text-xl font-semibold text-gray-700 dark:text-gray-200">Drop your OpenAPI file here</p>
-                            <p class="text-gray-500 dark:text-gray-400">or click to browse (JSON, YAML, YML)</p>
+
+                    <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
+                        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="input-tabs">
+                            <li class="mr-2">
+                                <button type="button" class="tab-btn inline-block p-4 border-b-2 rounded-t-lg" data-tab="upload-tab">Upload File</button>
+                            </li>
+                            <li class="mr-2">
+                                <button type="button" class="tab-btn inline-block p-4 border-b-2 rounded-t-lg" data-tab="paste-tab">Paste Content</button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <div id="upload-tab-content" class="tab-content">
+                            <div id="file-drop-zone" class="file-drop-zone rounded-2xl p-8 text-center cursor-pointer">
+                                <input type="file" id="oasFile" name="oasFile" accept=".json,.yaml,.yml" class="hidden">
+                                <div id="file-display-area">
+                                    <i class="fas fa-cloud-arrow-up text-6xl text-gray-400 dark:text-gray-500 mb-4"></i>
+                                    <p class="text-xl font-semibold text-gray-700 dark:text-gray-200">Drop your OpenAPI file here</p>
+                                    <p class="text-gray-500 dark:text-gray-400">or click to browse (JSON, YAML, YML)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="paste-tab-content" class="tab-content hidden">
+                            <div class="flex border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900">
+                                <div id="line-numbers" class="line-numbers-wrapper">1</div>
+                                <textarea id="oasContent" name="oasContent" class="editor-textarea" placeholder="Paste your OpenAPI spec here..."></textarea>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- **MODIFIED**: Changed from checkboxes to radio buttons -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-6">
                         <fieldset class="bg-gray-50/50 dark:bg-gray-800/30 p-6 rounded-xl">
                             <legend class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center"><i class="fas fa-cogs mr-2"></i>Target Engine</legend>
                             <div class="space-y-3">
@@ -53,27 +106,24 @@
                                     <i class="fab fa-google text-2xl text-blue-500"></i>
                                     <span class="font-medium">Go (RE2J)</span>
                                 </label>
-                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer">
-                                    <input type="radio" name="engine" value="none" class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:focus:bg-gray-600 dark:focus:ring-offset-gray-800">
-                                    <i class="fas fa-ban text-xl text-gray-500"></i>
-                                    <span class="font-medium">None (Quality Only)</span>
-                                </label>
                             </div>
                         </fieldset>
                         <fieldset class="bg-gray-50/50 dark:bg-gray-800/30 p-6 rounded-xl">
-                            <legend class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center"><i class="fas fa-shield-alt mr-2"></i>Quality</legend>
+                            <legend class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center"><i class="fas fa-shield-alt mr-2"></i>Regex Quality</legend>
                             <div class="space-y-3">
-                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="qualityCheckPermissive" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-exclamation-triangle text-xl text-yellow-500"></i><span class="font-medium">Permissive</span></label>
-                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="qualityCheckAnchors" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-anchor text-xl text-blue-500"></i><span class="font-medium">Anchors</span></label>
-                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="qualityCheckRedos" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-bomb text-xl text-red-500"></i><span class="font-medium">ReDoS</span></label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="qualityCheckPermissive" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-exclamation-triangle text-xl text-yellow-500"></i><span class="font-medium">Permissive Patterns</span></label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="qualityCheckAnchors" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-anchor text-xl text-blue-500"></i><span class="font-medium">Missing Anchors</span></label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="qualityCheckRedos" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-bomb text-xl text-red-500"></i><span class="font-medium">Potential ReDoS</span></label>
                             </div>
                         </fieldset>
-                        <fieldset class="bg-gray-50/50 dark:bg-gray-800/30 p-6 rounded-xl md:col-span-2 lg:col-span-1">
+                        <fieldset class="bg-gray-50/50 dark:bg-gray-800/30 p-6 rounded-xl">
                             <legend class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center"><i class="fas fa-ruler-combined mr-2"></i>Best Practices</legend>
                             <div class="space-y-3">
                                 <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="checkNaming" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-font text-xl text-teal-500"></i><span class="font-medium">Path Naming</span></label>
                                 <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="checkOperationId" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-fingerprint text-xl text-cyan-500"></i><span class="font-medium">OperationID</span></label>
                                 <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="checkSummary" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-align-left text-xl text-sky-500"></i><span class="font-medium">Summary</span></label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="checkSchemaDescription" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-info-circle text-xl text-purple-500"></i><span class="font-medium">Descriptions</span></label>
+                                <label class="flex items-center space-x-3 p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"><input type="checkbox" name="checkSchemaExample" value="true" checked class="checkbox-custom h-5 w-5 appearance-none rounded-md border-2 border-gray-300 dark:border-gray-600 relative"><i class="fas fa-vial text-xl text-pink-500"></i><span class="font-medium">Examples</span></label>
                             </div>
                         </fieldset>
                     </div>
@@ -97,6 +147,49 @@
 <script>
     // Page-specific script for upload form logic
     document.addEventListener('DOMContentLoaded', () => {
+        const tabsContainer = document.getElementById('input-tabs');
+        const tabButtons = tabsContainer.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        const setActiveTab = (tabId) => {
+            tabButtons.forEach(button => {
+                if (button.dataset.tab === tabId) {
+                    button.classList.add('border-indigo-500', 'text-indigo-600', 'dark:border-indigo-400', 'dark:text-indigo-400');
+                    button.classList.remove('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+                } else {
+                    button.classList.remove('border-indigo-500', 'text-indigo-600', 'dark:border-indigo-400', 'dark:text-indigo-400');
+                    button.classList.add('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+                }
+            });
+            tabContents.forEach(content => {
+                if (content.id === `${tabId}-content`) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        };
+
+        tabsContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('tab-btn')) {
+                setActiveTab(e.target.dataset.tab);
+            }
+        });
+        setActiveTab('upload-tab');
+
+        const oasContent = document.getElementById('oasContent');
+        const lineNumbers = document.getElementById('line-numbers');
+        const updateLineNumbers = () => {
+            if (!oasContent || !lineNumbers) return;
+            const numberOfLines = oasContent.value.split('\n').length;
+            lineNumbers.innerHTML = Array.from({ length: numberOfLines }, (_, i) => i + 1).join('<br>');
+        };
+        oasContent.addEventListener('input', updateLineNumbers);
+        oasContent.addEventListener('scroll', () => {
+            lineNumbers.scrollTop = oasContent.scrollTop;
+        });
+        updateLineNumbers();
+
         const uploadForm = document.getElementById('uploadForm');
         if (!uploadForm) return;
 
@@ -147,8 +240,8 @@
 
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (fileInput.files.length === 0) {
-                alert('Please select an OpenAPI file first.');
+            if (fileInput.files.length === 0 && oasContent.value.trim() === '') {
+                alert('Please select an OpenAPI file or paste content first.');
                 return;
             }
             submitButton.disabled = true;

@@ -43,8 +43,8 @@ public class OasUploadController {
     }
 
     @PostMapping("/upload")
-    public String handleFileUpload(@RequestParam("oasFile") MultipartFile file,
-                                   // **MODIFIED**: Changed to a single 'engine' parameter
+    public String handleFileUpload(@RequestParam(value = "oasFile", required = false) MultipartFile file,
+                                   @RequestParam(value = "oasContent", required = false) String oasContent,
                                    @RequestParam(value = "engine", defaultValue = "java") String engine,
                                    @RequestParam(value = "qualityCheckPermissive", defaultValue = "false") boolean qualityCheckPermissive,
                                    @RequestParam(value = "qualityCheckAnchors", defaultValue = "false") boolean qualityCheckAnchors,
@@ -55,17 +55,24 @@ public class OasUploadController {
                                    @RequestParam(value = "checkSchemaDescription", defaultValue = "false") boolean checkSchemaDescription,
                                    @RequestParam(value = "checkSchemaExample", defaultValue = "false") boolean checkSchemaExample,
                                    Model model) {
-        if (file.isEmpty()) {
-            model.addAttribute("message", "Error: Please select an OpenAPI file to upload.");
-            model.addAttribute("results", Collections.emptyList());
-            return "fragments/results :: results-content";
-        }
+        String content;
+        String fileName = "pasted-content.yaml";
 
         try {
-            String oasContent = new String(file.getBytes(), StandardCharsets.UTF_8);
+            if (oasContent != null && !oasContent.isBlank()) {
+                content = oasContent;
+            } else if (file != null && !file.isEmpty()) {
+                content = new String(file.getBytes(), StandardCharsets.UTF_8);
+                fileName = file.getOriginalFilename();
+            } else {
+                model.addAttribute("message", "Error: Please either upload an OpenAPI file or paste its content.");
+                model.addAttribute("results", Collections.emptyList());
+                return "fragments/results :: results-content";
+            }
+
             ParseOptions options = new ParseOptions();
             options.setResolve(true);
-            SwaggerParseResult parseResult = new OpenAPIV3Parser().readContents(oasContent, null, options);
+            SwaggerParseResult parseResult = new OpenAPIV3Parser().readContents(content, null, options);
             OpenAPI openAPI = parseResult.getOpenAPI();
 
             if (openAPI == null) {
@@ -76,9 +83,8 @@ public class OasUploadController {
                 return "fragments/results :: results-content";
             }
 
-            // **MODIFIED**: Pass the single engine string to the validation service
-            List<GroupedValidationResult> results = oasValidationService.validateOasRegex(
-                    openAPI, engine,
+            List<GroupedValidationResult> results = oasValidationService.validateOas(
+                    openAPI, content, engine,
                     qualityCheckPermissive, qualityCheckAnchors, qualityCheckRedos,
                     checkNaming, checkOperationId, checkSummary, checkSchemaDescription, checkSchemaExample);
 
@@ -92,7 +98,7 @@ public class OasUploadController {
             Statistics stats = Statistics.fromResults(results);
             model.addAttribute("stats", stats);
 
-            model.addAttribute("message", "Analysis complete for " + file.getOriginalFilename());
+            model.addAttribute("message", "Analysis complete for " + fileName);
             model.addAttribute("results", results);
             model.addAttribute("shareableLink", shareableLink);
 

@@ -12,18 +12,15 @@ public class JavaRegexValidator implements RegexValidator {
     private static final String ENGINE_NAME = "Java";
 
     @Override
-    public ValidationResult validate(String location, String regex) {
+    public ValidationResult validate(String location, int lineNumber, String regex) {
         try {
             Pattern.compile(regex);
-            return ValidationResult.success(location, regex, ENGINE_NAME);
+            return ValidationResult.success(location, lineNumber, regex, ENGINE_NAME);
         } catch (PatternSyntaxException e) {
             String errorMessage = String.format("Invalid Java regex syntax: %s near index %d", e.getDescription(), e.getIndex());
             String suggestion = String.format("Review the pattern syntax around: '%s'. Check Java's regex documentation for supported features.", e.getPattern());
-
-            // Generate a suggested fix for common, simple errors
             String suggestedRegex = generateSuggestedFix(regex, e);
-
-            return ValidationResult.error(location, regex, ENGINE_NAME, errorMessage, suggestion, suggestedRegex);
+            return ValidationResult.error(location, lineNumber, regex, ENGINE_NAME, errorMessage, suggestion, suggestedRegex);
         }
     }
 
@@ -34,7 +31,6 @@ public class JavaRegexValidator implements RegexValidator {
         if (e.getDescription().startsWith("Unclosed group")) {
             return regex + ")";
         }
-        // Can add more simple fixes here for other common errors
         return null;
     }
 

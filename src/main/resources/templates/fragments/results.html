@@ -10,7 +10,9 @@
 
     <!-- Results Content -->
     <div th:if="${not #lists.isEmpty(results)}" class="space-y-8">
-        <!-- Detailed Statistics Section -->
+        <!-- ================================================== -->
+        <!-- == THIS IS THE ANALYSIS SUMMARY SECTION           == -->
+        <!-- ================================================== -->
         <div class="glass-card p-8">
             <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6 text-center">Analysis Summary</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -43,11 +45,14 @@
             </div>
         </div>
 
-        <!-- Results Table Section -->
+        <!-- ================================================== -->
+        <!-- == THIS IS THE DETAILED RESULTS SECTION         == -->
+        <!-- ================================================== -->
         <div class="glass-card p-8">
             <div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
                 <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-100">Detailed Results</h2>
                 <div class="w-full md:w-auto flex flex-col sm:flex-row items-center gap-4">
+                    <!-- The filter checkboxes -->
                     <div id="filter-controls" class="flex items-center space-x-3 text-sm font-medium text-gray-600 dark:text-gray-300">
                         <label class="flex items-center cursor-pointer"><input type="checkbox" value="ERROR" class="filter-checkbox h-4 w-4 rounded text-red-600 border-gray-300 focus:ring-red-500" checked> <span class="ml-2">Errors</span></label>
                         <label class="flex items-center cursor-pointer"><input type="checkbox" value="WARNING" class="filter-checkbox h-4 w-4 rounded text-yellow-500 border-gray-300 focus:ring-yellow-400" checked> <span class="ml-2">Warnings</span></label>
@@ -62,14 +67,17 @@
                 <div class="flex items-center space-x-2"><input id="share-link-input" type="text" readonly th:value="${shareableLink}" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-sm"><button class="copy-link-btn btn-primary text-white font-semibold py-2 px-4 rounded-md text-sm whitespace-nowrap"><i class="fas fa-copy mr-2"></i>Copy Link</button></div>
             </div>
 
+            <!-- The loop that creates the detailed list of results -->
             <div id="results-container" class="space-y-2">
-                <!-- Grouped results loop remains the same -->
                 <div th:each="group : ${results}" class="result-group" th:data-status="${group.hasError() ? 'ERROR' : (group.hasWarning() ? 'WARNING' : 'VALID')}">
                     <div class="group-header bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 p-3 rounded-lg cursor-pointer transition-colors" th:attr="onclick='toggleGroup(this)'">
                         <div class="flex justify-between items-center">
-                            <div class="flex-grow overflow-hidden">
-                                <p class="font-mono text-xs text-gray-500 dark:text-gray-400 truncate" th:text="${group.location}"></p>
-                                <code class="text-sm text-gray-800 dark:text-gray-200" th:text="${group.regexPattern}"></code>
+                            <div class="flex-grow overflow-hidden flex items-center">
+                                <span th:if="${group.lineNumber > 0}" th:text="${group.lineNumber}" class="font-mono text-xs bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md px-2 py-1 mr-3"></span>
+                                <div class="overflow-hidden">
+                                    <p class="font-mono text-xs text-gray-500 dark:text-gray-400 truncate" th:text="${group.location}"></p>
+                                    <code class="text-sm text-gray-800 dark:text-gray-200" th:text="${group.regexPattern}"></code>
+                                </div>
                             </div>
                             <div class="flex items-center space-x-2 flex-shrink-0 ml-4">
                                 <span th:if="${group.hasError()}" class="status-badge ERROR">ERROR</span>

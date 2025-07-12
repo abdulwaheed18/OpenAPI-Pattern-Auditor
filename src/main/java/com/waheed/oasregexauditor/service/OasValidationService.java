@@ -5,12 +5,8 @@ import com.waheed.oasregexauditor.model.ValidationResult;
 import com.waheed.oasregexauditor.service.validators.PatternQualityValidator;
 import com.waheed.oasregexauditor.service.validators.RegexValidator;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,8 +20,6 @@ import java.util.stream.Collectors;
 @Service
 public class OasValidationService {
 
-    private static final Logger log = LoggerFactory.getLogger(OasValidationService.class);
-
     private final List<RegexValidator> validators;
     private final PatternQualityValidator qualityValidator;
 
@@ -35,24 +29,60 @@ public class OasValidationService {
         this.qualityValidator = qualityValidator;
     }
 
-    // **MODIFIED**: Method signature updated to accept a single engine string
-    public List<GroupedValidationResult> validateOasRegex(OpenAPI openAPI,
-                                                          String engine,
-                                                          boolean qualityCheckPermissive, boolean qualityCheckAnchors, boolean qualityCheckRedos,
-                                                          boolean checkNaming, boolean checkOperationId, boolean checkSummary, boolean checkSchemaDescription, boolean checkSchemaExample) {
+    public List<GroupedValidationResult> validateOas(OpenAPI openAPI, String oasContent, String engine,
+                                                     boolean qualityCheckPermissive, boolean qualityCheckAnchors, boolean qualityCheckRedos,
+                                                     boolean checkNaming, boolean checkOperationId, boolean checkSummary,
+                                                     boolean checkSchemaDescription, boolean checkSchemaExample) {
         List<ValidationResult> flatResults = new ArrayList<>();
-        // **MODIFIED**: Get a single optional validator based on the engine string
         Optional<RegexValidator> activeValidator = getActiveValidator(engine);
 
-        Consumer<PatternLocation> patternProcessor = (loc) -> {
-            // **MODIFIED**: If the validator is present, use it.
-            activeValidator.ifPresent(validator -> flatResults.add(validator.validate(loc.path, loc.pattern)));
-            flatResults.addAll(qualityValidator.validateRegex(loc.path, loc.pattern, qualityCheckPermissive, qualityCheckAnchors, qualityCheckRedos));
+        // 1. Validate Regex patterns
+        Consumer<PatternLocation> patternProcessor = loc -> {
+            int lineNumber = findLineNumber(oasContent, loc.pattern());
+            activeValidator.ifPresent(validator -> flatResults.add(validator.validate(loc.path(), lineNumber, loc.pattern())));
+            flatResults.addAll(qualityValidator.validateRegex(loc.path(), lineNumber, loc.pattern(), qualityCheckPermissive, qualityCheckAnchors, qualityCheckRedos));
         };
+        scanForPatterns(openAPI, patternProcessor);
 
+        // 2. Validate Best Practices
+        if (openAPI.getPaths() != null) {
+            openAPI.getPaths().forEach((path, pathItem) -> {
+                String pathLocation = "#/paths/" + escapePath(path);
+                flatResults.addAll(qualityValidator.validatePath(pathLocation, path, checkNaming));
+                if (pathItem.readOperations() != null) {
+                    pathItem.readOperations().forEach(operation -> {
+                        String opLocation = pathLocation + "/" + pathItem.readOperationsMap().entrySet().stream()
+                                .filter(e -> e.getValue().equals(operation)).findFirst().get().getKey();
+                        flatResults.addAll(qualityValidator.validateOperation(opLocation, operation, checkOperationId, checkSummary));
+                    });
+                }
+            });
+        }
+        if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
+            openAPI.getComponents().getSchemas().forEach((schemaName, schema) -> {
+                String schemaLocation = "#/components/schemas/" + schemaName;
+                flatResults.addAll(qualityValidator.validateSchema(schemaLocation, schema, checkSchemaDescription, checkSchemaExample));
+            });
+        }
+
+
+        // Group results by location
+        Map<String, List<ValidationResult>> groupedByLocation = flatResults.stream()
+                .collect(Collectors.groupingBy(ValidationResult::getLocation));
+
+        return groupedByLocation.entrySet().stream()
+                .map(entry -> {
+                    String location = entry.getKey();
+                    ValidationResult firstResult = entry.getValue().get(0);
+                    return new GroupedValidationResult(location, firstResult.getLineNumber(), firstResult.getRegexPattern(), entry.getValue());
+                })
+                .collect(Collectors.toList());
+    }
+
+    private void scanForPatterns(OpenAPI openAPI, Consumer<PatternLocation> processor) {
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
             openAPI.getComponents().getSchemas().forEach((schemaName, schema) ->
-                    scanSchemaForPatterns(schema, "#/components/schemas/" + schemaName, patternProcessor)
+                    scanSchemaForPatterns(schema, "#/components/schemas/" + schemaName, processor)
             );
         }
 
@@ -64,8 +94,11 @@ public class OasValidationService {
                             for (int i = 0; i < operation.getParameters().size(); i++) {
                                 Parameter param = operation.getParameters().get(i);
                                 if (param.getSchema() != null && param.getSchema().getPattern() != null) {
-                                    String location = "#/paths/" + escapePath(path) + "/get/parameters/" + i;
-                                    patternProcessor.accept(new PatternLocation(location, param.getSchema().getPattern()));
+                                    String location = String.format("#/paths/%s/%s/parameters/%d",
+                                            escapePath(path),
+                                            pathItem.readOperationsMap().entrySet().stream().filter(e -> e.getValue().equals(operation)).findFirst().get().getKey(),
+                                            i);
+                                    processor.accept(new PatternLocation(location, param.getSchema().getPattern()));
                                 }
                             }
                         }
@@ -73,41 +106,12 @@ public class OasValidationService {
                 }
             });
         }
-
-        Map<String, List<ValidationResult>> groupedByLocation = flatResults.stream()
-                .collect(Collectors.groupingBy(ValidationResult::getLocation));
-
-        return groupedByLocation.entrySet().stream()
-                .map(entry -> {
-                    String location = entry.getKey();
-                    String pattern = entry.getValue().get(0).getRegexPattern();
-                    return new GroupedValidationResult(location, pattern, entry.getValue());
-                })
-                .collect(Collectors.toList());
-    }
-
-    // **MODIFIED**: This method now finds a single validator
-    private Optional<RegexValidator> getActiveValidator(String engine) {
-        return validators.stream()
-                .filter(v -> {
-                    switch (engine.toLowerCase()) {
-                        case "java":
-                            return "Java".equals(v.getEngineName());
-                        case "js":
-                            return "JavaScript".equals(v.getEngineName());
-                        case "go":
-                            return "Go (RE2J)".equals(v.getEngineName());
-                        default:
-                            return false;
-                    }
-                })
-                .findFirst();
     }
 
     private void scanSchemaForPatterns(Schema<?> schema, String currentLocation, Consumer<PatternLocation> processor) {
         if (schema == null) return;
         if (schema.getPattern() != null) {
-            processor.accept(new PatternLocation(currentLocation + "/pattern", schema.getPattern()));
+            processor.accept(new PatternLocation(currentLocation, schema.getPattern()));
         }
         if (schema.getProperties() != null) {
             schema.getProperties().forEach((propName, propSchema) ->
@@ -117,6 +121,25 @@ public class OasValidationService {
         if (schema.getItems() != null) {
             scanSchemaForPatterns(schema.getItems(), currentLocation + "/items", processor);
         }
+    }
+
+    private int findLineNumber(String content, String pattern) {
+        String[] lines = content.split("\r\n|\n");
+        String searchString1 = "pattern: '" + pattern + "'";
+        String searchString2 = "pattern: \"" + pattern + "\"";
+        for (int i = 0; i < lines.length; i++) {
+            String trimmedLine = lines[i].trim();
+            if (trimmedLine.contains(searchString1) || trimmedLine.contains(searchString2)) {
+                return i + 1;
+            }
+        }
+        return 0;
+    }
+
+    private Optional<RegexValidator> getActiveValidator(String engine) {
+        return validators.stream()
+                .filter(v -> v.getEngineName().toLowerCase().startsWith(engine.toLowerCase()))
+                .findFirst();
     }
 
     private String escapePath(String path) {
