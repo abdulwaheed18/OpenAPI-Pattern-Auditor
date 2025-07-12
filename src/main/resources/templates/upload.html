@@ -56,7 +56,7 @@
 
         <div class="space-y-8">
             <div class="glass-card p-8">
-                <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" class="space-y-6">
+                <form id="uploadForm" th:action="@{/openapiauditor/upload}" method="post" enctype="multipart/form-data" class="space-y-6">
 
                     <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
                         <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="input-tabs">
@@ -145,7 +145,7 @@
 
 <div th:replace="~{fragments/footer :: page-footer}"></div>
 <script th:replace="~{fragments/global-scripts :: global-scripts}"></script>
-<script>
+<script th:inline="javascript">
     // Page-specific script for upload form logic
     document.addEventListener('DOMContentLoaded', () => {
         const tabsContainer = document.getElementById('input-tabs');
@@ -252,7 +252,7 @@
             resultsSection.style.transition = 'opacity 0.3s';
             const formData = new FormData(uploadForm);
             try {
-                const response = await fetch('/upload', { method: 'POST', body: formData });
+                const response = await fetch(/*[[@{/openapiauditor/upload}]]*/'/openapiauditor/upload', { method: 'POST', body: formData });
                 const html = await response.text();
                 resultsSection.innerHTML = html;
                 initializeTableControls();

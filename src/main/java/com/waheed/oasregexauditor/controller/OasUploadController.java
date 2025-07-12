@@ -15,6 +15,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Controller
+@RequestMapping("/openapiauditor")
 public class OasUploadController {
 
     private static final Logger log = LoggerFactory.getLogger(OasUploadController.class);
@@ -36,7 +38,7 @@ public class OasUploadController {
     @Autowired
     private ResultsCacheService resultsCacheService;
 
-    @GetMapping("/")
+    @GetMapping("")
     public String showUploadForm(Model model) {
         model.addAttribute("initialView", true);
         return "upload";
@@ -91,7 +93,7 @@ public class OasUploadController {
             String resultsId = UUID.randomUUID().toString().substring(0, 8);
             resultsCacheService.store(resultsId, results);
             String shareableLink = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/r/{id}")
+                    .path("/openapiauditor/r/{id}")
                     .buildAndExpand(resultsId)
                     .toUriString();
 

@@ -6,11 +6,9 @@
 </head>
 <body>
 
-<!-- Footer Fragment -->
 <footer th:fragment="page-footer" class="bg-gray-800 text-gray-300 mt-16">
     <div class="container mx-auto px-4 py-12 max-w-7xl">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
-            <!-- About Section -->
             <div>
                 <h3 class="text-lg font-semibold text-white mb-4">About Pattern Auditor</h3>
                 <p class="text-sm text-gray-400">
@@ -18,17 +16,15 @@
                 </p>
             </div>
 
-            <!-- Quick Links -->
             <div>
                 <h3 class="text-lg font-semibold text-white mb-4">Quick Links</h3>
                 <ul class="space-y-2 text-sm">
-                    <li><a th:href="@{/}" class="hover:text-white transition-colors">Home</a></li>
-                    <li><a th:href="@{/about}" class="hover:text-white transition-colors">About the Author</a></li>
+                    <li><a th:href="@{/openapiauditor}" class="hover:text-white transition-colors">Home</a></li>
+                    <li><a th:href="@{/openapiauditor/about}" class="hover:text-white transition-colors">About the Author</a></li>
                     <li><a th:href="${appConfig.blog}" target="_blank" class="hover:text-white transition-colors">Blog</a></li>
                 </ul>
             </div>
 
-            <!-- Contact / Social -->
             <div>
                 <h3 class="text-lg font-semibold text-white mb-4">Connect</h3>
                 <div class="flex justify-center md:justify-start space-x-4">
@@ -39,7 +35,6 @@
             </div>
         </div>
 
-        <!-- Copyright -->
         <div class="border-t border-gray-700 mt-8 pt-6 text-center text-sm text-gray-500">
             <p>&copy; 2025 <span th:text="${appConfig.name}">Your Name</span>. All Rights Reserved.</p>
         </div>
