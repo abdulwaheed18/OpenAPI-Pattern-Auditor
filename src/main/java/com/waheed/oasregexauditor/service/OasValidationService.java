@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -34,19 +35,18 @@ public class OasValidationService {
         this.qualityValidator = qualityValidator;
     }
 
+    // **MODIFIED**: Method signature updated to accept a single engine string
     public List<GroupedValidationResult> validateOasRegex(OpenAPI openAPI,
-                                                          boolean validateJava, boolean validateJs, boolean validateGoRe2j,
+                                                          String engine,
                                                           boolean qualityCheckPermissive, boolean qualityCheckAnchors, boolean qualityCheckRedos,
                                                           boolean checkNaming, boolean checkOperationId, boolean checkSummary, boolean checkSchemaDescription, boolean checkSchemaExample) {
         List<ValidationResult> flatResults = new ArrayList<>();
-        List<RegexValidator> activeValidators = getActiveValidators(validateJava, validateJs, validateGoRe2j);
+        // **MODIFIED**: Get a single optional validator based on the engine string
+        Optional<RegexValidator> activeValidator = getActiveValidator(engine);
 
         Consumer<PatternLocation> patternProcessor = (loc) -> {
-            if (!activeValidators.isEmpty()) {
-                for (RegexValidator validator : activeValidators) {
-                    flatResults.add(validator.validate(loc.path, loc.pattern));
-                }
-            }
+            // **MODIFIED**: If the validator is present, use it.
+            activeValidator.ifPresent(validator -> flatResults.add(validator.validate(loc.path, loc.pattern)));
             flatResults.addAll(qualityValidator.validateRegex(loc.path, loc.pattern, qualityCheckPermissive, qualityCheckAnchors, qualityCheckRedos));
         };
 
@@ -58,7 +58,6 @@ public class OasValidationService {
 
         if (openAPI.getPaths() != null) {
             openAPI.getPaths().forEach((path, pathItem) -> {
-                // This part is simplified for brevity, the full traversal logic would be here
                 if (pathItem.readOperations() != null) {
                     pathItem.readOperations().forEach(operation -> {
                         if (operation.getParameters() != null) {
@@ -87,14 +86,22 @@ public class OasValidationService {
                 .collect(Collectors.toList());
     }
 
-    private List<RegexValidator> getActiveValidators(boolean java, boolean js, boolean go) {
-        List<RegexValidator> active = new ArrayList<>();
-        for (RegexValidator validator : validators) {
-            if (java && "Java".equals(validator.getEngineName())) active.add(validator);
-            if (js && "JavaScript".equals(validator.getEngineName())) active.add(validator);
-            if (go && "Go (RE2J)".equals(validator.getEngineName())) active.add(validator);
-        }
-        return active;
+    // **MODIFIED**: This method now finds a single validator
+    private Optional<RegexValidator> getActiveValidator(String engine) {
+        return validators.stream()
+                .filter(v -> {
+                    switch (engine.toLowerCase()) {
+                        case "java":
+                            return "Java".equals(v.getEngineName());
+                        case "js":
+                            return "JavaScript".equals(v.getEngineName());
+                        case "go":
+                            return "Go (RE2J)".equals(v.getEngineName());
+                        default:
+                            return false;
+                    }
+                })
+                .findFirst();
     }
 
     private void scanSchemaForPatterns(Schema<?> schema, String currentLocation, Consumer<PatternLocation> processor) {

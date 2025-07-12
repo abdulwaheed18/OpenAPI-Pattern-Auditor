@@ -38,16 +38,14 @@ public class OasUploadController {
 
     @GetMapping("/")
     public String showUploadForm(Model model) {
-        // Add a flag to indicate that this is the initial view, so the empty state can be shown.
         model.addAttribute("initialView", true);
         return "upload";
     }
 
     @PostMapping("/upload")
     public String handleFileUpload(@RequestParam("oasFile") MultipartFile file,
-                                   @RequestParam(value = "validateJava", defaultValue = "false") boolean validateJava,
-                                   @RequestParam(value = "validateJs", defaultValue = "false") boolean validateJs,
-                                   @RequestParam(value = "validateGoRe2j", defaultValue = "false") boolean validateGoRe2j,
+                                   // **MODIFIED**: Changed to a single 'engine' parameter
+                                   @RequestParam(value = "engine", defaultValue = "java") String engine,
                                    @RequestParam(value = "qualityCheckPermissive", defaultValue = "false") boolean qualityCheckPermissive,
                                    @RequestParam(value = "qualityCheckAnchors", defaultValue = "false") boolean qualityCheckAnchors,
                                    @RequestParam(value = "qualityCheckRedos", defaultValue = "false") boolean qualityCheckRedos,
@@ -78,21 +76,19 @@ public class OasUploadController {
                 return "fragments/results :: results-content";
             }
 
+            // **MODIFIED**: Pass the single engine string to the validation service
             List<GroupedValidationResult> results = oasValidationService.validateOasRegex(
-                    openAPI, validateJava, validateJs, validateGoRe2j,
+                    openAPI, engine,
                     qualityCheckPermissive, qualityCheckAnchors, qualityCheckRedos,
                     checkNaming, checkOperationId, checkSummary, checkSchemaDescription, checkSchemaExample);
 
             String resultsId = UUID.randomUUID().toString().substring(0, 8);
-            // Use the updated store method
             resultsCacheService.store(resultsId, results);
-
             String shareableLink = ServletUriComponentsBuilder.fromCurrentContextPath()
                     .path("/r/{id}")
                     .buildAndExpand(resultsId)
                     .toUriString();
 
-            // Generate and add statistics to the model
             Statistics stats = Statistics.fromResults(results);
             model.addAttribute("stats", stats);
 
@@ -110,7 +106,6 @@ public class OasUploadController {
             model.addAttribute("results", Collections.emptyList());
         }
 
-        // The initialView flag is not needed here, as this is the result of a form post.
         model.addAttribute("initialView", false);
         return "fragments/results :: results-content";
     }
