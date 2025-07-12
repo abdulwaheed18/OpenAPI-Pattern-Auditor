@@ -65,18 +65,29 @@ public class OasValidationService {
             });
         }
 
+        // Group results by location and then by the specific regex pattern
+        Map<String, Map<String, List<ValidationResult>>> groupedByLocationAndPattern = flatResults.stream()
+                .collect(Collectors.groupingBy(
+                        ValidationResult::getLocation,
+                        Collectors.groupingBy(res -> res.getRegexPattern() != null ? res.getRegexPattern() : "N/A")
+                ));
 
-        // Group results by location
-        Map<String, List<ValidationResult>> groupedByLocation = flatResults.stream()
-                .collect(Collectors.groupingBy(ValidationResult::getLocation));
+        List<GroupedValidationResult> finalResults = new ArrayList<>();
+        groupedByLocationAndPattern.forEach((location, patternMap) -> {
+            patternMap.forEach((pattern, results) -> {
+                if (!results.isEmpty()) {
+                    // Get the line number from the first result in the group that has one.
+                    int lineNumber = results.stream()
+                            .mapToInt(ValidationResult::getLineNumber)
+                            .filter(ln -> ln > 0)
+                            .findFirst()
+                            .orElse(0); // Default to 0 if no result has a line number (e.g., best practice issues)
+                    finalResults.add(new GroupedValidationResult(location, lineNumber, pattern, results));
+                }
+            });
+        });
 
-        return groupedByLocation.entrySet().stream()
-                .map(entry -> {
-                    String location = entry.getKey();
-                    ValidationResult firstResult = entry.getValue().get(0);
-                    return new GroupedValidationResult(location, firstResult.getLineNumber(), firstResult.getRegexPattern(), entry.getValue());
-                })
-                .collect(Collectors.toList());
+        return finalResults;
     }
 
     private void scanForPatterns(OpenAPI openAPI, Consumer<PatternLocation> processor) {
@@ -125,10 +136,11 @@ public class OasValidationService {
 
     private int findLineNumber(String content, String pattern) {
         String[] lines = content.split("\r\n|\n");
+        // Create more robust search strings, ignoring potential extra spaces
         String searchString1 = "pattern: '" + pattern + "'";
         String searchString2 = "pattern: \"" + pattern + "\"";
         for (int i = 0; i < lines.length; i++) {
-            String trimmedLine = lines[i].trim();
+            String trimmedLine = lines[i].trim().replaceAll("\\s+", " ");
             if (trimmedLine.contains(searchString1) || trimmedLine.contains(searchString2)) {
                 return i + 1;
             }

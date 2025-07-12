@@ -137,7 +137,9 @@
                 </form>
             </div>
             <div id="results-section" class="space-y-8">
-                <th:block th:replace="~{fragments/results :: results-content}"></th:block>
+                <th:block th:if="${initialView}">
+                </th:block>
+                <th:block th:unless="${initialView}" th:replace="~{fragments/results :: results-content}"></th:block>
             </div>
         </div>
     </div>
@@ -177,6 +179,7 @@
                 setActiveTab(button.dataset.tab);
             }
         });
+        // Set initial active tab
         setActiveTab('upload-tab');
 
         const oasContent = document.getElementById('oasContent');
@@ -190,7 +193,7 @@
         oasContent.addEventListener('scroll', () => {
             lineNumbers.scrollTop = oasContent.scrollTop;
         });
-        updateLineNumbers();
+        updateLineNumbers(); // Initial call
 
         const uploadForm = document.getElementById('uploadForm');
         if (!uploadForm) return;
@@ -243,7 +246,12 @@
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (fileInput.files.length === 0 && oasContent.value.trim() === '') {
-                alert('Please select an OpenAPI file or paste content first.');
+                // Show a more user-friendly message
+                const errorContainer = document.createElement('div');
+                errorContainer.className = "glass-card p-6 text-center text-red-600 dark:text-red-400";
+                errorContainer.innerHTML = '<i class="fas fa-exclamation-triangle text-4xl mb-4"></i><h3 class="text-2xl font-bold">Input Missing</h3><p class="dark:text-gray-300">Please upload a file or paste content before analyzing.</p>';
+                resultsSection.innerHTML = '';
+                resultsSection.appendChild(errorContainer);
                 return;
             }
             submitButton.disabled = true;
@@ -255,7 +263,7 @@
                 const response = await fetch(/*[[@{/openapiauditor/upload}]]*/'/openapiauditor/upload', { method: 'POST', body: formData });
                 const html = await response.text();
                 resultsSection.innerHTML = html;
-                initializeTableControls();
+                initializeTableControls(); // This function is in global-scripts.html
                 resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } catch (error) {
                 console.error('Form submission error:', error);
